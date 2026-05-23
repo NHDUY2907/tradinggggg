@@ -15,18 +15,6 @@ public interface StatisticalRepository
     extends JpaRepository<StatisticalEntity, Integer>, JpaSpecificationExecutor<StatisticalEntity> {
   List<StatisticalEntity> findAllByDate(Integer ytd);
 
-  @Query(
-      "UPDATE StatisticalEntity s set s.win = null,s.lose = null, "
-          + "s.winLast = null,s.loseLast = null")
-  @Transactional
-  @Modifying
-  void updateNull();
-
-  @Query("UPDATE StatisticalEntity s set " + "s.winLast = null,s.loseLast = null")
-  @Transactional
-  @Modifying
-  void updateNullV1();
-
   List<StatisticalEntity> findTop50ByDateOrderByStatisticalIdDesc(Integer ytd);
 
   List<StatisticalEntity> findTop100ByDateOrderByStatisticalIdDesc(Integer ytd);

@@ -49,16 +49,16 @@ public class ScreenCaptureService {
           "X: 1-2-3 | T: 1-2-3-4-6",
           "X: 1-2-3-4-5 | T: 1-2-3-4-5");
 
-//    public static void main(String[] args) throws Exception {
-//      while (true) {
-//        PointerInfo a = MouseInfo.getPointerInfo();
-//        Point p = a.getLocation();
-//
-//        System.out.println("X: " + p.x + " | Y: " + p.y);
-//
-//        Thread.sleep(5000); // 0.5s in 1 lần
-//      }
-//    }
+  //    public static void main(String[] args) throws Exception {
+  //      while (true) {
+  //        PointerInfo a = MouseInfo.getPointerInfo();
+  //        Point p = a.getLocation();
+  //
+  //        System.out.println("X: " + p.x + " | Y: " + p.y);
+  //
+  //        Thread.sleep(5000); // 0.5s in 1 lần
+  //      }
+  //    }
 
   private Robot robot; // lazy init
   private static final String SAVE_DIR = "C:\\Users\\T9 Plus\\Desktop\\Capture\\";
@@ -106,7 +106,8 @@ public class ScreenCaptureService {
     return mask;
   }
 
-  public int captureCircleCenterV1(int centerX, int centerY, int radius) throws Exception {
+  // Thực hiện chụp ảnh và so sánh
+  public int captureCircleCenter(int centerX, int centerY, int radius) throws Exception {
 
     int diameter = radius * 2;
 
@@ -143,32 +144,6 @@ public class ScreenCaptureService {
     // 🔥 lưu ảnh sau crop
     File file2 = new File("C:\\Users\\T9 Plus\\Desktop\\Capture\\debug_circle.png");
     ImageIO.write(circleImage, "png", file2);
-  }
-
-  public String captureCircleCenter(int centerX, int centerY, int radius) throws Exception {
-
-    int diameter = radius * 2;
-
-    int x = centerX - radius;
-    int y = centerY - radius;
-
-    GraphicsDevice device = getScreenDevice(x, y);
-    Robot r = new Robot(device);
-
-    Rectangle rect = new Rectangle(x, y, diameter, diameter);
-    BufferedImage image = r.createScreenCapture(rect);
-
-    BufferedImage circleImage = cropCircle(image);
-
-    String fileName =
-        "circle_"
-            + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"))
-            + ".png";
-
-    String fullPath = SAVE_DIR + fileName;
-    ImageIO.write(circleImage, "png", new File(fullPath));
-
-    return fullPath;
   }
 
   private BufferedImage loadImage(String path) throws Exception {

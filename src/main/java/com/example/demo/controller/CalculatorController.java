@@ -30,30 +30,11 @@ public class CalculatorController {
     return calculatorService.calculatorRealV5(ytd);
   }
 
-  // Tinh độ dài các chuỗi con liên tiếp
-  @PostMapping("/calculator-length")
-  private void calculatorLength(@RequestParam("ytd") List<Integer> ytd) {
-    calculatorService.calculatorLength(ytd);
-  }
-
   @PostMapping("/capture-v1")
   public int captureV1(
       @RequestParam("x") int x, @RequestParam("y") int y, @RequestParam("size") int size)
       throws Exception {
-    return service.captureCircleCenterV1(x, y, size);
-  }
-
-  @PostMapping("/test-image")
-  public void testImage(
-          @RequestParam("x") int x, @RequestParam("y") int y, @RequestParam("size") int size)
-          throws Exception {
-     service.testImage(x, y, size);
-  }
-
-  @PostMapping("/capture-v2")
-  public String captureV2(
-      @RequestParam("x") int x, @RequestParam("y") int y, @RequestParam("size") int size)
-      throws Exception {
     return service.captureCircleCenter(x, y, size);
   }
+
 }

@@ -613,9 +613,6 @@ public class CalculatorService {
 
   // win/lose
   public void calculatorWinOrLose(List<Integer> ytd) {
-
-    statisticalRepository.updateNull();
-
     ytd.forEach(
         date -> {
           List<StatisticalEntity> statisticalEntities = statisticalRepository.findAllByDate(date);
