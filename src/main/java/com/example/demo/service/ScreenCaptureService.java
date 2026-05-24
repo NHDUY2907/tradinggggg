@@ -49,16 +49,19 @@ public class ScreenCaptureService {
           "X: 1-2-3 | T: 1-2-3-4-6",
           "X: 1-2-3-4-5 | T: 1-2-3-4-5");
 
-      public static void main(String[] args) throws Exception {
-        while (true) {
-          PointerInfo a = MouseInfo.getPointerInfo();
-          Point p = a.getLocation();
+  private static final Set<String> WARNING =
+      Set.of("10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20");
 
-          System.out.println("X: " + p.x + " | Y: " + p.y);
+  public static void main(String[] args) throws Exception {
+    while (true) {
+      PointerInfo a = MouseInfo.getPointerInfo();
+      Point p = a.getLocation();
 
-          Thread.sleep(5000); // 0.5s in 1 lần
-        }
-      }
+      System.out.println("X: " + p.x + " | Y: " + p.y);
+
+      Thread.sleep(5000); // 0.5s in 1 lần
+    }
+  }
 
   private Robot robot; // lazy init
   private static final String SAVE_DIR = "C:\\Users\\T9 Plus\\Desktop\\Capture\\";
@@ -208,6 +211,11 @@ public class ScreenCaptureService {
         nextAction = "X";
       } else {
         nextAction = "T";
+      }
+
+      if (Objects.nonNull(statisticalEntity.getLength())
+          && WARNING.contains(statisticalEntity.getLength())) {
+        telegramService.sendMessage("WARNING: Kiểm tra hệ thống");
       }
 
       if (Objects.nonNull(statisticalEntity.getLength())
