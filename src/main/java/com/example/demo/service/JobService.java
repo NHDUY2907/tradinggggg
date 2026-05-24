@@ -124,7 +124,7 @@ public class JobService {
         telegramService.sendMessage(
             "⚠️ <b>JOB CHƯA CHẠY</b>" + "\n\n" + "Hệ thống đang tự khởi động lại...");
 
-        startJob(2545, 574, 9);
+        startJob(2475, 572, 9);
 
       } else {
 

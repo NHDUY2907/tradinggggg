@@ -189,7 +189,7 @@ public class TelegramService {
         try {
 
             String api =
-                    "http://localhost:9191/job/start?x=2545&y=574&size=9";
+                    "http://localhost:9191/job/start?x=2475&y=572&size=9";
 
             restTemplate.postForObject(
                     api,
