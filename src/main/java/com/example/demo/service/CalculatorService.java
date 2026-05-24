@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -17,8 +19,10 @@ public class CalculatorService {
   private final TelegramService telegramService;
 
   public void getData() {
+    int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+
     List<StatisticalEntity> statisticalEntities =
-        statisticalRepository.findTop10OrderByStatisticalIdDesc();
+        statisticalRepository.findTop10ByDateOrderByStatisticalIdDesc(today);
     if (statisticalEntities == null || statisticalEntities.isEmpty()) {
       return;
     }
