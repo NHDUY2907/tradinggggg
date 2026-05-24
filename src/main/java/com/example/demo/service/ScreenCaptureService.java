@@ -214,7 +214,7 @@ public class ScreenCaptureService {
       }
 
       if (Objects.nonNull(statisticalEntity.getLength())
-          && WARNING.contains(statisticalEntity.getLength())) {
+          && WARNING.stream().anyMatch(w -> statisticalEntity.getLength().contains(w))) {
         telegramService.sendMessage("WARNING: Kiểm tra hệ thống");
       }
 
