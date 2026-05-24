@@ -15,6 +15,8 @@ public interface StatisticalRepository
     extends JpaRepository<StatisticalEntity, Integer>, JpaSpecificationExecutor<StatisticalEntity> {
   List<StatisticalEntity> findAllByDate(Integer ytd);
 
+  List<StatisticalEntity> findTop10OrderByStatisticalIdDesc();
+
   List<StatisticalEntity> findTop50ByDateOrderByStatisticalIdDesc(Integer ytd);
 
   List<StatisticalEntity> findTop100ByDateOrderByStatisticalIdDesc(Integer ytd);

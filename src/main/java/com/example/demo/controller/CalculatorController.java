@@ -30,11 +30,15 @@ public class CalculatorController {
     return calculatorService.calculatorRealV5(ytd);
   }
 
+  @PostMapping("/get-data")
+  private void getData() {
+    calculatorService.getData();
+  }
+
   @PostMapping("/capture-v1")
   public int captureV1(
       @RequestParam("x") int x, @RequestParam("y") int y, @RequestParam("size") int size)
       throws Exception {
     return service.captureCircleCenter(x, y, size);
   }
-
 }

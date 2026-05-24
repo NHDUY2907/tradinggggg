@@ -14,6 +14,36 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CalculatorService {
   private final StatisticalRepository statisticalRepository;
+  private final TelegramService telegramService;
+
+  public void getData() {
+    List<StatisticalEntity> statisticalEntities =
+        statisticalRepository.findTop10OrderByStatisticalIdDesc();
+    if (statisticalEntities == null || statisticalEntities.isEmpty()) {
+      return;
+    }
+
+    Collections.reverse(statisticalEntities);
+
+    StringBuilder message = new StringBuilder();
+
+    for (int i = 0; i < statisticalEntities.size(); i++) {
+
+      StatisticalEntity entity = statisticalEntities.get(i);
+
+      // Record mới nhất (cuối cùng)
+      boolean isLast = (i == statisticalEntities.size() - 1);
+
+      message.append(i + 1).append(". ").append(entity.getResult());
+
+      if (isLast) {
+        message.append(" | Length: ").append(entity.getLength());
+      }
+
+      message.append("\n");
+    }
+    telegramService.sendMessage(message.toString());
+  }
 
   public Map<Integer, Double> calculatorRealV5(List<Integer> ytd) {
     Map<Integer, Double> result = new HashMap<>();
@@ -144,5 +174,4 @@ public class CalculatorService {
           statisticalRepository.saveAll(statisticalEntities);
         });
   }
-
 }

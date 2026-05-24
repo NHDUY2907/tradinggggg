@@ -13,217 +13,212 @@ import java.util.Map;
 @Service
 public class TelegramService {
 
-    @Value("${telegram.bot.token}")
-    private String botToken;
+  @Value("${telegram.bot.token}")
+  private String botToken;
 
-    @Value("${telegram.chat.id}")
-    private String chatId;
+  @Value("${telegram.chat.id}")
+  private String chatId;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+  private final RestTemplate restTemplate = new RestTemplate();
 
-    // update cuối cùng đã xử lý
-    private long updateId = 0;
+  // update cuối cùng đã xử lý
+  private long updateId = 0;
 
-    // =========================================================
-    // SEND MESSAGE
-    // =========================================================
+  // =========================================================
+  // SEND MESSAGE
+  // =========================================================
 
-    public void sendMessage(String message) {
+  public void sendMessage(String message) {
+
+    try {
+
+      String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> body = new HashMap<>();
+      body.put("chat_id", chatId);
+      body.put("parse_mode", "HTML");
+      body.put("text", message);
+
+      HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+      restTemplate.postForObject(url, request, String.class);
+
+    } catch (Exception e) {
+
+      e.printStackTrace();
+    }
+  }
+
+  // =========================================================
+  // START TELEGRAM LONG POLLING
+  // =========================================================
+
+  @PostConstruct
+  public void startTelegramPolling() {
+
+    Thread pollingThread = new Thread(this::longPolling);
+
+    pollingThread.setDaemon(true);
+
+    pollingThread.start();
+
+    System.out.println("Telegram long polling started...");
+  }
+
+  // =========================================================
+  // LONG POLLING
+  // =========================================================
+
+  private void longPolling() {
+
+    while (true) {
+
+      try {
+
+        String url =
+            "https://api.telegram.org/bot"
+                + botToken
+                + "/getUpdates?timeout=60&offset="
+                + (updateId + 1);
+
+        Map response = restTemplate.getForObject(url, Map.class);
+
+        if (response == null) {
+          continue;
+        }
+
+        List<Map> results = (List<Map>) response.get("result");
+
+        if (results == null || results.isEmpty()) {
+          continue;
+        }
+
+        for (Map result : results) {
+
+          // update_id mới nhất
+          updateId = ((Number) result.get("update_id")).longValue();
+
+          Map message = (Map) result.get("message");
+
+          if (message == null) {
+            continue;
+          }
+
+          String text = (String) message.get("text");
+
+          if (text == null || text.isBlank()) {
+            continue;
+          }
+
+          Long currentChatId = ((Number) ((Map) message.get("chat")).get("id")).longValue();
+
+          // chỉ cho phép chính bạn dùng bot
+          if (!currentChatId.toString().equals(chatId)) {
+            continue;
+          }
+
+          System.out.println("COMMAND: " + text);
+
+          handleCommand(text.trim().toLowerCase());
+        }
+
+      } catch (Exception e) {
+
+        e.printStackTrace();
 
         try {
-
-            String url =
-                    "https://api.telegram.org/bot"
-                            + botToken
-                            + "/sendMessage";
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            Map<String, Object> body = new HashMap<>();
-            body.put("chat_id", chatId);
-            body.put("parse_mode", "HTML");
-            body.put("text", message);
-
-            HttpEntity<Map<String, Object>> request =
-                    new HttpEntity<>(body, headers);
-
-            restTemplate.postForObject(url, request, String.class);
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
+          Thread.sleep(3000);
+        } catch (InterruptedException ignored) {
         }
+      }
     }
+  }
 
-    // =========================================================
-    // START TELEGRAM LONG POLLING
-    // =========================================================
+  // =========================================================
+  // HANDLE COMMAND
+  // =========================================================
 
-    @PostConstruct
-    public void startTelegramPolling() {
+  private void handleCommand(String command) {
 
-        Thread pollingThread = new Thread(this::longPolling);
+    switch (command) {
+      case "/start":
+        callStart();
 
-        pollingThread.setDaemon(true);
+        sendMessage("✅ start executed");
 
-        pollingThread.start();
+        break;
 
-        System.out.println("Telegram long polling started...");
+      case "/stop":
+        callStop();
+
+        sendMessage("✅ stop executed");
+
+        break;
+
+      case "/get-data":
+        getData();
+
+        sendMessage("✅ getData executed");
+
+        break;
+
+      default:
+        sendMessage("❌ Unknown command");
     }
+  }
 
-    // =========================================================
-    // LONG POLLING
-    // =========================================================
+  // =========================================================
+  // CALL LOCAL API
+  // =========================================================
 
-    private void longPolling() {
+  private void callStart() {
 
-        while (true) {
+    try {
 
-            try {
+      String api = "http://localhost:9191/job/start?x=2475&y=572&size=9";
 
-                String url =
-                        "https://api.telegram.org/bot"
-                                + botToken
-                                + "/getUpdates?timeout=60&offset="
-                                + (updateId + 1);
+      restTemplate.postForObject(api, null, String.class);
 
-                Map response =
-                        restTemplate.getForObject(url, Map.class);
+    } catch (Exception e) {
 
-                if (response == null) {
-                    continue;
-                }
+      sendMessage("❌ Call API start failed");
 
-                List<Map> results =
-                        (List<Map>) response.get("result");
-
-                if (results == null || results.isEmpty()) {
-                    continue;
-                }
-
-                for (Map result : results) {
-
-                    // update_id mới nhất
-                    updateId =
-                            ((Number) result.get("update_id"))
-                                    .longValue();
-
-                    Map message =
-                            (Map) result.get("message");
-
-                    if (message == null) {
-                        continue;
-                    }
-
-                    String text =
-                            (String) message.get("text");
-
-                    if (text == null || text.isBlank()) {
-                        continue;
-                    }
-
-                    Long currentChatId =
-                            ((Number) ((Map) message.get("chat"))
-                                    .get("id"))
-                                    .longValue();
-
-                    // chỉ cho phép chính bạn dùng bot
-                    if (!currentChatId.toString().equals(chatId)) {
-                        continue;
-                    }
-
-                    System.out.println("COMMAND: " + text);
-
-                    handleCommand(text.trim().toLowerCase());
-                }
-
-            } catch (Exception e) {
-
-                e.printStackTrace();
-
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException ignored) {
-                }
-            }
-        }
+      e.printStackTrace();
     }
+  }
 
-    // =========================================================
-    // HANDLE COMMAND
-    // =========================================================
+  private void callStop() {
 
-    private void handleCommand(String command) {
+    try {
 
-        switch (command) {
+      String api = "http://localhost:9191/job/stop";
 
-            case "/start":
+      restTemplate.postForObject(api, null, String.class);
 
-                callStart();
+    } catch (Exception e) {
 
-                sendMessage("✅ start executed");
+      sendMessage("❌ Call API stop failed");
 
-                break;
-
-            case "/stop":
-
-                callStop();
-
-                sendMessage("✅ stop executed");
-
-                break;
-
-            default:
-
-                sendMessage("❌ Unknown command");
-        }
+      e.printStackTrace();
     }
+  }
 
-    // =========================================================
-    // CALL LOCAL API
-    // =========================================================
+  private void getData() {
 
-    private void callStart() {
+    try {
 
-        try {
+      String api = "http://localhost:9191/calculator/get-data";
 
-            String api =
-                    "http://localhost:9191/job/start?x=2475&y=572&size=9";
+      restTemplate.postForObject(api, null, String.class);
 
-            restTemplate.postForObject(
-                    api,
-                    null,
-                    String.class
-            );
+    } catch (Exception e) {
 
-        } catch (Exception e) {
+      sendMessage("❌ Call API get data failed");
 
-            sendMessage("❌ Call API start failed");
-
-            e.printStackTrace();
-        }
+      e.printStackTrace();
     }
-
-
-    private void callStop() {
-
-        try {
-
-            String api =
-                    "http://localhost:9191/job/stop";
-
-            restTemplate.postForObject(
-                    api,
-                    null,
-                    String.class
-            );
-
-        } catch (Exception e) {
-
-            sendMessage("❌ Call API stop failed");
-
-            e.printStackTrace();
-        }
-    }
+  }
 }
