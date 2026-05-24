@@ -6,6 +6,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -158,10 +160,24 @@ public class TelegramService {
 
         break;
 
-      case "/get-data":
+      case "/data":
         getData();
 
         sendMessage("✅ getData executed");
+
+        break;
+
+      case "/wol":
+        callWOL();
+
+        sendMessage("✅ callWOL executed");
+
+        break;
+
+      case "/main":
+        callMain();
+
+        sendMessage("✅ callMain executed");
 
         break;
 
@@ -217,6 +233,40 @@ public class TelegramService {
     } catch (Exception e) {
 
       sendMessage("❌ Call API get data failed");
+
+      e.printStackTrace();
+    }
+  }
+
+  private void callWOL() {
+
+    try {
+      int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+
+      String api = "http://localhost:9191/calculator/win-or-lose?ytd=" + today;
+
+      restTemplate.postForObject(api, null, String.class);
+
+    } catch (Exception e) {
+
+      sendMessage("❌ Call API get WOL failed");
+
+      e.printStackTrace();
+    }
+  }
+
+  private void callMain() {
+
+    try {
+      int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+
+      String api = "http://localhost:9191/calculator/main?ytd=" + today;
+
+      restTemplate.postForObject(api, null, String.class);
+
+    } catch (Exception e) {
+
+      sendMessage("❌ Call API get Main failed");
 
       e.printStackTrace();
     }

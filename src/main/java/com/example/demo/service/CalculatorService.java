@@ -49,7 +49,7 @@ public class CalculatorService {
     telegramService.sendMessage(message.toString());
   }
 
-  public Map<Integer, Double> calculatorRealV5(List<Integer> ytd) {
+  public Map<Integer, Double> calculatorMain(List<Integer> ytd) {
     Map<Integer, Double> result = new HashMap<>();
     ytd.forEach(
         date -> {
