@@ -158,22 +158,25 @@ public class CalculatorService {
 
           for (int i = 50; i < statisticalEntities.size() - 1; i++) {
 
-            int count = statisticalEntities.get(i - 1).getEqResult();
+            if (Objects.nonNull(statisticalEntities.get(i - 1).getEqResult())){
+              int count = statisticalEntities.get(i - 1).getEqResult();
 
-            if (count >= 1 && count < 6) {
-              if (statisticalEntities.get(i).getResult() == 0) {
-                statisticalEntities.get(i).setWin(1);
-              } else {
-                statisticalEntities.get(i).setLose(1);
+              if (count >= 1 && count < 6) {
+                if (statisticalEntities.get(i).getResult() == 0) {
+                  statisticalEntities.get(i).setWin(1);
+                } else {
+                  statisticalEntities.get(i).setLose(1);
+                }
+              }
+              if (count <= -1 && count > -6) {
+                if (statisticalEntities.get(i).getResult() == 1) {
+                  statisticalEntities.get(i).setWin(1);
+                } else {
+                  statisticalEntities.get(i).setLose(1);
+                }
               }
             }
-            if (count <= -1 && count > -6) {
-              if (statisticalEntities.get(i).getResult() == 1) {
-                statisticalEntities.get(i).setWin(1);
-              } else {
-                statisticalEntities.get(i).setLose(1);
-              }
-            }
+
           }
           statisticalRepository.saveAll(statisticalEntities);
         });
