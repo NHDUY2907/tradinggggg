@@ -112,7 +112,7 @@ public class JobService {
   // AUTO CHECK EVERY DAY 5:30 AM
   // =========================================================
 
-  @Scheduled(cron = "0 30 5 * * *")
+  @Scheduled(cron = "30 29 5 * * *")
   public void autoStartJobMorning() {
 
     try {
