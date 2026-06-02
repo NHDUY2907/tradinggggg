@@ -15,11 +15,17 @@ import java.util.Map;
 @Service
 public class TelegramService {
 
-  @Value("${telegram.bot.token}")
-  private String botToken;
+  @Value("${telegram.notify.bot.token}")
+  private String notifyBotToken;
 
-  @Value("${telegram.chat.id}")
-  private String chatId;
+  @Value("${telegram.notify.chat.id}")
+  private String notifyChatId;
+
+  @Value("${telegram.command.bot.token}")
+  private String commandBotToken;
+
+  @Value("${telegram.command.chat.id}")
+  private String commandChatId;
 
   private final RestTemplate restTemplate = new RestTemplate();
 
@@ -34,13 +40,13 @@ public class TelegramService {
 
     try {
 
-      String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
+      String url = "https://api.telegram.org/bot" + notifyBotToken + "/sendMessage";
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
 
       Map<String, Object> body = new HashMap<>();
-      body.put("chat_id", chatId);
+      body.put("chat_id", notifyChatId);
       body.put("parse_mode", "HTML");
       body.put("text", message);
 
@@ -49,7 +55,6 @@ public class TelegramService {
       restTemplate.postForObject(url, request, String.class);
 
     } catch (Exception e) {
-
       e.printStackTrace();
     }
   }
@@ -67,7 +72,7 @@ public class TelegramService {
 
     pollingThread.start();
 
-    System.out.println("Telegram long polling started...");
+    System.out.println("Telegram command bot started...");
   }
 
   // =========================================================
@@ -82,7 +87,7 @@ public class TelegramService {
 
         String url =
             "https://api.telegram.org/bot"
-                + botToken
+                + commandBotToken
                 + "/getUpdates?timeout=60&offset="
                 + (updateId + 1);
 
@@ -100,7 +105,6 @@ public class TelegramService {
 
         for (Map result : results) {
 
-          // update_id mới nhất
           updateId = ((Number) result.get("update_id")).longValue();
 
           Map message = (Map) result.get("message");
@@ -117,8 +121,7 @@ public class TelegramService {
 
           Long currentChatId = ((Number) ((Map) message.get("chat")).get("id")).longValue();
 
-          // chỉ cho phép chính bạn dùng bot
-          if (!currentChatId.toString().equals(chatId)) {
+          if (!currentChatId.toString().equals(commandChatId)) {
             continue;
           }
 
@@ -148,127 +151,118 @@ public class TelegramService {
     switch (command) {
       case "/start":
         callStart();
-
-        sendMessage("✅ start executed");
-
+        sendCommandResponse("✅ start executed");
         break;
 
       case "/stop":
         callStop();
-
-        sendMessage("✅ stop executed");
-
+        sendCommandResponse("✅ stop executed");
         break;
 
       case "/data":
         getData();
-
-        sendMessage("✅ getData executed");
-
+        sendCommandResponse("✅ data executed");
         break;
 
       case "/wol":
         callWOL();
-
-        sendMessage("✅ callWOL executed");
-
+        sendCommandResponse("✅ callWOL executed");
         break;
 
       case "/main":
         callMain();
-
-        sendMessage("✅ callMain executed");
-
+        sendCommandResponse("✅ callMain executed");
         break;
 
       default:
-        sendMessage("❌ Unknown command");
+        sendCommandResponse("❌ Unknown command");
     }
   }
 
   // =========================================================
-  // CALL LOCAL API
+  // SEND RESPONSE TO COMMAND BOT
+  // =========================================================
+
+  private void sendCommandResponse(String message) {
+
+    try {
+
+      String url = "https://api.telegram.org/bot" + commandBotToken + "/sendMessage";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> body = new HashMap<>();
+      body.put("chat_id", commandChatId);
+      body.put("parse_mode", "HTML");
+      body.put("text", message);
+
+      HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+      restTemplate.postForObject(url, request, String.class);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  // =========================================================
+  // LOCAL API
   // =========================================================
 
   private void callStart() {
 
     try {
-
-      String api = "http://localhost:9191/job/start?x=2475&y=572&size=9";
-
-      restTemplate.postForObject(api, null, String.class);
-
+      restTemplate.postForObject(
+          "http://localhost:9191/job/start?x=2475&y=572&size=9", null, String.class);
     } catch (Exception e) {
-
-      sendMessage("❌ Call API start failed");
-
-      e.printStackTrace();
+      sendCommandResponse("❌ Call API start failed");
     }
   }
 
   private void callStop() {
 
     try {
-
-      String api = "http://localhost:9191/job/stop";
-
-      restTemplate.postForObject(api, null, String.class);
-
+      restTemplate.postForObject("http://localhost:9191/job/stop", null, String.class);
     } catch (Exception e) {
-
-      sendMessage("❌ Call API stop failed");
-
-      e.printStackTrace();
+      sendCommandResponse("❌ Call API stop failed");
     }
   }
 
   private void getData() {
 
     try {
-
-      String api = "http://localhost:9191/calculator/get-data";
-
-      restTemplate.postForObject(api, null, String.class);
-
+      restTemplate.postForObject("http://localhost:9191/calculator/get-data", null, String.class);
     } catch (Exception e) {
-
-      sendMessage("❌ Call API get data failed");
-
-      e.printStackTrace();
+      sendCommandResponse("❌ Call API get data failed");
     }
   }
 
   private void callWOL() {
 
     try {
+
       int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
 
-      String api = "http://localhost:9191/calculator/win-or-lose?ytd=" + today;
-
-      restTemplate.postForObject(api, null, String.class);
+      restTemplate.postForObject(
+          "http://localhost:9191/calculator/win-or-lose?ytd=" + today, null, String.class);
 
     } catch (Exception e) {
-
-      sendMessage("❌ Call API get WOL failed");
-
-      e.printStackTrace();
+      sendCommandResponse("❌ Call API WOL failed");
     }
   }
 
   private void callMain() {
 
     try {
+
       int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
 
-      String api = "http://localhost:9191/calculator/main?ytd=" + today;
-
-      restTemplate.postForObject(api, null, String.class);
+      restTemplate.postForObject(
+          "http://localhost:9191/calculator/main?ytd=" + today, null, String.class);
 
     } catch (Exception e) {
-
-      sendMessage("❌ Call API get Main failed");
-
-      e.printStackTrace();
+      sendCommandResponse("❌ Call API Main failed");
     }
   }
 }
