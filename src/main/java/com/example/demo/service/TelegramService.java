@@ -1,6 +1,8 @@
 package com.example.demo.service;
 
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -12,8 +14,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
+@RequiredArgsConstructor
 public class TelegramService {
+  private final TradingService tradingService;
 
   @Value("${telegram.notify.bot.token}")
   private String notifyBotToken;
@@ -186,6 +191,16 @@ public class TelegramService {
 
       case "/data":
         getData();
+        break;
+
+      case "/trade_on":
+        tradingService.start();
+        sendMessageAdmin("✅ Trading ON");
+        break;
+
+      case "/trade_off":
+        tradingService.stop();
+        sendMessageAdmin("🛑 Trading OFF");
         break;
 
       case "/wol":

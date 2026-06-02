@@ -12,8 +12,26 @@ import org.springframework.stereotype.Component;
 public class TradingService {
   private final TelegramService telegramService;
 
+  private volatile boolean enabled = false;
+
+  // ON
+  public void start() {
+    enabled = true;
+    log.info("TRADING ENABLED");
+  }
+
+  // OFF
+  public void stop() {
+    enabled = false;
+    log.info("TRADING DISABLED");
+  }
+
   @EventListener
   public void onSignalEvent(SignalEvent event) {
+    if (!enabled) {
+      telegramService.sendMessage("Signal ignored (trading OFF)");
+      return;
+    }
 
     // TEST ONLY - chưa có logic trading
     String message =
