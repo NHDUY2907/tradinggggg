@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class TradingService {
-  private final TelegramService telegramService;
+  private final BotTradingService botTradingService;
 
   private volatile boolean enabled = false;
 
@@ -29,7 +29,7 @@ public class TradingService {
   @EventListener
   public void onSignalEvent(SignalEvent event) {
     if (!enabled) {
-      telegramService.sendMessage("Signal ignored (trading OFF)");
+      botTradingService.sendMessageTrading("Signal ignored (trading OFF)");
       return;
     }
 
@@ -45,6 +45,6 @@ public class TradingService {
             + "👉 Next action: "
             + event.getNextAction();
 
-    telegramService.sendMessage(message);
+    botTradingService.sendMessageTrading(message);
   }
 }
