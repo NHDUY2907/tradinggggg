@@ -178,17 +178,14 @@ public class TelegramService {
     switch (command) {
       case "/start":
         callStart();
-        sendMessageAdmin("✅ start executed");
         break;
 
       case "/stop":
         callStop();
-        sendMessageAdmin("✅ stop executed");
         break;
 
       case "/data":
         getData();
-        sendMessageAdmin("✅ data executed");
         break;
 
       case "/wol":

@@ -2,7 +2,10 @@ package com.example.demo.service;
 
 import com.example.demo.data.entity.StatisticalEntity;
 import com.example.demo.data.repository.StatisticalRepository;
+import com.example.demo.event.SignalEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
@@ -22,6 +25,8 @@ public class ScreenCaptureService {
 
   private final TelegramService telegramService;
   private final StatisticalRepository statisticalRepository;
+
+  @Autowired private ApplicationEventPublisher publisher;
 
   private static final Set<String> STRONG =
       Set.of(
@@ -50,7 +55,9 @@ public class ScreenCaptureService {
           "X: 1-2-3-4-5 | T: 1-2-3-4-5");
 
   private static final Set<String> WARNING =
-      Set.of("10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20");
+      java.util.stream.IntStream.rangeClosed(10, 50)
+          .mapToObj(String::valueOf)
+          .collect(java.util.stream.Collectors.toSet());
 
   public static void main(String[] args) throws Exception {
     while (true) {
@@ -187,12 +194,12 @@ public class ScreenCaptureService {
     BufferedImage den = loadImage("C:\\Users\\T9 Plus\\Desktop\\Capture\\den.png");
     BufferedImage trang = loadImage("C:\\Users\\T9 Plus\\Desktop\\Capture\\trang.png");
 
-    double diffDen = compareImages(captured, den);
-    double diffTrang = compareImages(captured, trang);
+    double diffBlack = compareImages(captured, den);
+    double diffWhite = compareImages(captured, trang);
 
-    int result = (diffDen < diffTrang) ? 1 : 0;
+    int result = (diffBlack < diffWhite) ? 1 : 0;
 
-    invalidCoordinates(diffDen, diffTrang);
+    invalidCoordinates(diffBlack, diffWhite);
 
     int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
 
@@ -215,7 +222,8 @@ public class ScreenCaptureService {
 
       if (Objects.nonNull(statisticalEntity.getLength())
           && WARNING.stream().anyMatch(w -> statisticalEntity.getLength().contains(w))) {
-        telegramService.sendMessageAdmin("WARNING: Kiểm tra hệ thống");
+        telegramService.sendMessageAdmin(
+            "WARNING: Kiểm tra hệ thống đang có trên 10 phần tử trùng");
       }
 
       if (Objects.nonNull(statisticalEntity.getLength())
@@ -223,7 +231,7 @@ public class ScreenCaptureService {
         telegramService.sendMessage(
             "📊 <b>STRONG</b> | 🔔 "
                 + statisticalEntity.getEqResult()
-                + "\n\n"
+                + "\n"
                 + "📌 <b>Tín hiệu:</b> "
                 + statisticalEntity.getLength()
                 + "\n"
@@ -234,14 +242,17 @@ public class ScreenCaptureService {
                 + statisticalEntity.getLechDuoi()
                 + "\n"
                 + "👉 <b>Lệnh tiếp theo: </b> "
-                + nextAction);
+                + nextAction
+                + "\n");
+
+        publisher.publishEvent(new SignalEvent("STRONG", statisticalEntity, nextAction));
       }
       if (Objects.nonNull(statisticalEntity.getLength())
           && MEDIUM.contains(statisticalEntity.getLength())) {
         telegramService.sendMessage(
             "📊 <b>MEDIUM</b> | 🔔 "
                 + statisticalEntity.getEqResult()
-                + "\n\n"
+                + "\n"
                 + "📌 <b>Tín hiệu:</b> "
                 + statisticalEntity.getLength()
                 + "\n"
@@ -252,7 +263,10 @@ public class ScreenCaptureService {
                 + statisticalEntity.getLechDuoi()
                 + "\n"
                 + "👉 <b>Lệnh tiếp theo: </b> "
-                + nextAction);
+                + nextAction
+                + "\n");
+
+        publisher.publishEvent(new SignalEvent("MEDIUM", statisticalEntity, nextAction));
       }
 
       if (Objects.nonNull(statisticalEntity.getLength())
@@ -260,7 +274,7 @@ public class ScreenCaptureService {
         telegramService.sendMessage(
             "📊 <b>WEAK</b> | 🔔 "
                 + statisticalEntity.getEqResult()
-                + "\n\n"
+                + "\n"
                 + "📌 <b>Tín hiệu:</b> "
                 + statisticalEntity.getLength()
                 + "\n"
@@ -271,7 +285,10 @@ public class ScreenCaptureService {
                 + statisticalEntity.getLechDuoi()
                 + "\n"
                 + "👉 <b>Lệnh tiếp theo: </b> "
-                + nextAction);
+                + nextAction
+                + "\n");
+
+        publisher.publishEvent(new SignalEvent("WEAK", statisticalEntity, nextAction));
       }
     }
 
@@ -450,18 +467,18 @@ public class ScreenCaptureService {
     return statisticalRepository.save(statisticalEntity);
   }
 
-  private void invalidCoordinates(double diffDen, double diffTrang) {
+  private void invalidCoordinates(double diffBlack, double diffWhite) {
     double thresholdInvalid = 0.15;
 
-    boolean invalidPosition = diffDen > thresholdInvalid && diffTrang > thresholdInvalid;
+    boolean invalidPosition = diffBlack > thresholdInvalid && diffWhite > thresholdInvalid;
 
     if (invalidPosition) {
       String message =
           String.format(
               "⚠️ INVALID CAPTURE\n\n"
-                  + "📊 diffDen: %.2f | diffTrang: %.2f\n"
+                  + "📊 diffBlack: %.2f | diffWhite: %.2f\n"
                   + "⚠️ Khả năng cao sai tọa độ hoặc lệch vùng capture",
-              diffDen, diffTrang);
+              diffBlack, diffWhite);
       telegramService.sendMessageAdmin(message);
     }
   }
