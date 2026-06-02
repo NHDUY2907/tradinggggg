@@ -46,7 +46,7 @@ public class CalculatorService {
 
       message.append("\n");
     }
-    telegramService.sendMessage(message.toString());
+    telegramService.sendMessageAdmin(message.toString());
   }
 
   public Map<Integer, Double> calculatorMain(List<Integer> ytd) {
@@ -158,7 +158,7 @@ public class CalculatorService {
 
           for (int i = 50; i < statisticalEntities.size() - 1; i++) {
 
-            if (Objects.nonNull(statisticalEntities.get(i - 1).getEqResult())){
+            if (Objects.nonNull(statisticalEntities.get(i - 1).getEqResult())) {
               int count = statisticalEntities.get(i - 1).getEqResult();
 
               if (count >= 1 && count < 6) {
@@ -176,7 +176,6 @@ public class CalculatorService {
                 }
               }
             }
-
           }
           statisticalRepository.saveAll(statisticalEntities);
         });

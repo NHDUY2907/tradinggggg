@@ -60,6 +60,33 @@ public class TelegramService {
   }
 
   // =========================================================
+  // SEND MESSAGE ADMIN
+  // =========================================================
+
+  public void sendMessageAdmin(String message) {
+
+    try {
+
+      String url = "https://api.telegram.org/bot" + commandBotToken + "/sendMessage";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> body = new HashMap<>();
+      body.put("chat_id", commandChatId);
+      body.put("parse_mode", "HTML");
+      body.put("text", message);
+
+      HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+      restTemplate.postForObject(url, request, String.class);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  // =========================================================
   // START TELEGRAM LONG POLLING
   // =========================================================
 
@@ -151,58 +178,31 @@ public class TelegramService {
     switch (command) {
       case "/start":
         callStart();
-        sendCommandResponse("✅ start executed");
+        sendMessageAdmin("✅ start executed");
         break;
 
       case "/stop":
         callStop();
-        sendCommandResponse("✅ stop executed");
+        sendMessageAdmin("✅ stop executed");
         break;
 
       case "/data":
         getData();
-        sendCommandResponse("✅ data executed");
+        sendMessageAdmin("✅ data executed");
         break;
 
       case "/wol":
         callWOL();
-        sendCommandResponse("✅ callWOL executed");
+        sendMessageAdmin("✅ callWOL executed");
         break;
 
       case "/main":
         callMain();
-        sendCommandResponse("✅ callMain executed");
+        sendMessageAdmin("✅ callMain executed");
         break;
 
       default:
-        sendCommandResponse("❌ Unknown command");
-    }
-  }
-
-  // =========================================================
-  // SEND RESPONSE TO COMMAND BOT
-  // =========================================================
-
-  private void sendCommandResponse(String message) {
-
-    try {
-
-      String url = "https://api.telegram.org/bot" + commandBotToken + "/sendMessage";
-
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-
-      Map<String, Object> body = new HashMap<>();
-      body.put("chat_id", commandChatId);
-      body.put("parse_mode", "HTML");
-      body.put("text", message);
-
-      HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-
-      restTemplate.postForObject(url, request, String.class);
-
-    } catch (Exception e) {
-      e.printStackTrace();
+        sendMessageAdmin("❌ Unknown command");
     }
   }
 
@@ -216,7 +216,7 @@ public class TelegramService {
       restTemplate.postForObject(
           "http://localhost:9191/job/start?x=2475&y=572&size=9", null, String.class);
     } catch (Exception e) {
-      sendCommandResponse("❌ Call API start failed");
+      sendMessageAdmin("❌ Call API start failed");
     }
   }
 
@@ -225,7 +225,7 @@ public class TelegramService {
     try {
       restTemplate.postForObject("http://localhost:9191/job/stop", null, String.class);
     } catch (Exception e) {
-      sendCommandResponse("❌ Call API stop failed");
+      sendMessageAdmin("❌ Call API stop failed");
     }
   }
 
@@ -234,7 +234,7 @@ public class TelegramService {
     try {
       restTemplate.postForObject("http://localhost:9191/calculator/get-data", null, String.class);
     } catch (Exception e) {
-      sendCommandResponse("❌ Call API get data failed");
+      sendMessageAdmin("❌ Call API get data failed");
     }
   }
 
@@ -248,7 +248,7 @@ public class TelegramService {
           "http://localhost:9191/calculator/win-or-lose?ytd=" + today, null, String.class);
 
     } catch (Exception e) {
-      sendCommandResponse("❌ Call API WOL failed");
+      sendMessageAdmin("❌ Call API WOL failed");
     }
   }
 
@@ -262,7 +262,7 @@ public class TelegramService {
           "http://localhost:9191/calculator/main?ytd=" + today, null, String.class);
 
     } catch (Exception e) {
-      sendCommandResponse("❌ Call API Main failed");
+      sendMessageAdmin("❌ Call API Main failed");
     }
   }
 }

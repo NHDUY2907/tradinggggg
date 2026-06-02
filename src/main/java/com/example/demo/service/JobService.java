@@ -43,7 +43,7 @@ public class JobService {
 
                   log.error("Error while running capture job", e);
 
-                  telegramService.sendMessage(
+                  telegramService.sendMessageAdmin(
                       "❌ <b>JOB CAPTURE BỊ LỖI</b>" + "\n\n" + "Chi tiết:" + "\n" + e.getMessage());
                 }
               },
@@ -52,23 +52,13 @@ public class JobService {
 
       log.info("Capture job started");
 
-      telegramService.sendMessage(
-          "🟢 <b>ĐÃ KHỞI ĐỘNG JOB CAPTURE</b>"
-              + "\n\n"
-              + "📍 <b>X:</b> "
-              + x
-              + "\n"
-              + "📍 <b>Y:</b> "
-              + y
-              + "\n"
-              + "📐 <b>SIZE:</b> "
-              + size);
+      telegramService.sendMessageAdmin("🟢 <b>ĐÃ KHỞI ĐỘNG JOB CAPTURE</b>");
 
     } catch (Exception e) {
 
       log.error("Start job failed", e);
 
-      telegramService.sendMessage(
+      telegramService.sendMessageAdmin(
           "❌ <b>KHỞI ĐỘNG JOB THẤT BẠI</b>" + "\n\n" + "Chi tiết:" + "\n" + e.getMessage());
     }
   }
@@ -87,14 +77,14 @@ public class JobService {
 
         log.info("Capture job stopped");
 
-        telegramService.sendMessage("🛑 <b>ĐÃ DỪNG JOB CAPTURE</b>");
+        telegramService.sendMessageAdmin("🛑 <b>ĐÃ DỪNG JOB CAPTURE</b>");
       }
 
     } catch (Exception e) {
 
       log.error("Stop job failed", e);
 
-      telegramService.sendMessage(
+      telegramService.sendMessageAdmin(
           "❌ <b>DỪNG JOB THẤT BẠI</b>" + "\n\n" + "Chi tiết:" + "\n" + e.getMessage());
     }
   }
@@ -121,21 +111,21 @@ public class JobService {
 
       if (!isRunning()) {
 
-        telegramService.sendMessage(
+        telegramService.sendMessageAdmin(
             "⚠️ <b>JOB CHƯA CHẠY</b>" + "\n\n" + "Hệ thống đang tự khởi động lại...");
 
         startJob(2475, 572, 9);
 
       } else {
 
-        telegramService.sendMessage("✅ <b>JOB VẪN ĐANG HOẠT ĐỘNG BÌNH THƯỜNG</b>");
+        telegramService.sendMessageAdmin("✅ <b>JOB VẪN ĐANG HOẠT ĐỘNG BÌNH THƯỜNG</b>");
       }
 
     } catch (Exception e) {
 
       log.error("Auto start job failed", e);
 
-      telegramService.sendMessage(
+      telegramService.sendMessageAdmin(
           "❌ <b>TỰ KHỞI ĐỘNG JOB THẤT BẠI</b>" + "\n\n" + "Chi tiết:" + "\n" + e.getMessage());
     }
   }

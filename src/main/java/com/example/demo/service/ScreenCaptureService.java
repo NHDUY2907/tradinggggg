@@ -215,7 +215,7 @@ public class ScreenCaptureService {
 
       if (Objects.nonNull(statisticalEntity.getLength())
           && WARNING.stream().anyMatch(w -> statisticalEntity.getLength().contains(w))) {
-        telegramService.sendMessage("WARNING: Kiểm tra hệ thống");
+        telegramService.sendMessageAdmin("WARNING: Kiểm tra hệ thống");
       }
 
       if (Objects.nonNull(statisticalEntity.getLength())
@@ -462,7 +462,7 @@ public class ScreenCaptureService {
                   + "📊 diffDen: %.2f | diffTrang: %.2f\n"
                   + "⚠️ Khả năng cao sai tọa độ hoặc lệch vùng capture",
               diffDen, diffTrang);
-      telegramService.sendMessage(message);
+      telegramService.sendMessageAdmin(message);
     }
   }
 }
