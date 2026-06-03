@@ -3,20 +3,50 @@ package com.example.demo.service;
 import com.example.demo.data.entity.StatisticalEntity;
 import com.example.demo.enums.TradeState;
 import com.example.demo.event.SignalEvent;
+import com.example.demo.event.TradeSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class TradingService {
+
+  private static final Set<String> STRONG =
+      Set.of(
+          "X: 1-2-3-4 | T: 1-2-3-4",
+          "X: 1-2-3 | T: 1-2-3-4",
+          "X: 1-2-3-4 | T: 1-2-3",
+          "X: 1-2-3-4 | T: 1-2-3-4-5",
+          "X: 1-2-3-4-5 | T: 1-2-3-4",
+          "X: 1-2-3-4 | T: 1-2-3-6",
+          "X: 1-2-3-4 | T: 1-2-3-5");
+
+  private static final Set<String> MEDIUM =
+      Set.of(
+          "X: 1-2-3-4-6 | T: 1-2-3",
+          "X: 1-2-3-5 | T: 1-2-3-4",
+          "X: 1-2-3 | T: 1-2-3-4-5",
+          "X: 1-2-3-4-5 | T: 1-2-3",
+          "X: 1-2-3-4 | T: 1-2-4-5");
+
+  private static final Set<String> WEAK =
+      Set.of(
+          "X: 1-2-3-4-6 | T: 1-2-3-4",
+          "X: 1-2-3-5 | T: 1-2-3-5",
+          "X: 1-2-3 | T: 1-2-3-5",
+          "X: 1-2-3 | T: 1-2-3-4-6",
+          "X: 1-2-3-4-5 | T: 1-2-3-4-5");
+
   private final BotTradingService botTradingService;
 
   private volatile boolean enabled = false;
-  private volatile TradeState state = TradeState.READY;
-  private final int FIXED_STAKE = 15;
 
   // ON
   public void start() {
@@ -30,7 +60,27 @@ public class TradingService {
     log.info("TRADING DISABLED");
   }
 
-  private StatisticalEntity pendingEntity = null;
+  // =========================
+  // SESSION STATE (QUAN TRỌNG NHẤT)
+  // =========================
+  private TradeSession session = null;
+
+  private boolean canOpenSession(StatisticalEntity current) {
+    return Objects.nonNull(current.getLechDuoi())
+        && Objects.nonNull(current.getLechTren())
+        && Objects.nonNull(current.getLength())
+        && Objects.nonNull(current.getEqResult())
+        && List.of(1, 2, -1, -2).contains(current.getEqResult())
+        && current.getLechTren() <= 6
+        && current.getLechDuoi() <= 12
+        && (STRONG.contains(current.getLength())
+            || MEDIUM.contains(current.getLength())
+            || WEAK.contains(current.getLength()));
+  }
+
+  private boolean canContinueSession(StatisticalEntity current) {
+    return current.getEqResult() != null;
+  }
 
   @EventListener
   public void onSignalEvent(SignalEvent event) {
@@ -42,76 +92,117 @@ public class TradingService {
       return;
     }
 
-    // =========================
-    // GATE 2: STATE CHECK
-    // =========================
-    if (state == TradeState.PROCESSING) {
-      botTradingService.sendMessageTrading("Signal ignored (PROCESSING)");
+    StatisticalEntity current = event.getEntity();
+
+    if (session == null) {
+
+      // Kiểm tra điều kiện mở phiên
+      if (!canOpenSession(current)) {
+        return;
+      }
+
+      // Tạo session mới
+      session = TradeSession.builder().openTrade(current).totalMoney(15).vol(1).num(1).build();
+      botTradingService.sendMessageTrading("Bắt đầu mở phiên");
+
+      if (session.getOpenTrade().getEqResult() > 0) {
+        botTradingService.sendMessageTrading("1. Lenh bat dau: X");
+        // Xử lý click
+      } else {
+        botTradingService.sendMessageTrading("1. Lenh bat dau: T");
+        // Xử lý click
+      }
+
       return;
     }
 
-    try {
+    if (session.getOpenTrade() == null) {
+      if (!canContinueSession(current)) {
+        return;
+      }
+      session.setOpenTrade(current);
+      botTradingService.sendMessageTrading("MO LENH TIEP THEO #" + session.getNum());
+      return;
+    }
 
-      // =========================
-      // LOCK STATE
-      // =========================
-      state = TradeState.PROCESSING;
+    // Thực hiện tính toán và đưa ra kết quả kết thúc hay tiếp tục
+    StatisticalEntity entityOld = session.getOpenTrade();
 
-      StatisticalEntity current = event.getEntity();
+    int totalMoneyNew;
 
-      int numberWin = 0;
+    if ((entityOld.getEqResult() > 0 && current.getResult() == 0)
+        || (entityOld.getEqResult() < 0 && current.getResult() == 1)) {
+      totalMoneyNew = session.getTotalMoney() + session.getVol();
+    } else {
+      totalMoneyNew = session.getTotalMoney() - session.getVol();
+    }
 
-      int totalMoney = 15;
-      int num = 0;
+    if (totalMoneyNew >= 15 || totalMoneyNew == 0) {
+      session = null;
+      botTradingService.sendMessageTrading("KET THUC PHIEN\n" + "Ket qua: " + totalMoneyNew);
+      return;
+    }
 
-      do {
-        if (current.getEqResult() > 0) {
-          // thực hiện vào lệnh
-          // dựa vào totalMoney để thực hiện ào lệnh
-          if (totalMoney > 13) { // 14-15
-            // xử lý vào 1
-          } else if (totalMoney == 13) { // 13
-            // xử lý vào 3
-          } else if (totalMoney > 6) { // 12-11-10-9-8-7
-            // xử lý vào 2
-          } else if (totalMoney == 6) { // 6
-            // xử lý vào 6
+    // Quan trọng:
+    // Lệnh này đã có kết quả rồi
+    session.setOpenTrade(null);
+
+    session.setTotalMoney(totalMoneyNew);
+
+    if (totalMoneyNew > 13) {
+      session.setVol(1);
+    } else if (totalMoneyNew == 13) {
+      session.setVol(3);
+    } else if (totalMoneyNew > 6) {
+      session.setVol(2);
+    } else if (totalMoneyNew == 6) {
+      session.setVol(6);
+    }
+
+    if (canContinueSession(current)) {
+      session.setNum(session.getNum() + 1);
+      session.setOpenTrade(current);
+
+      switch (session.getVol()) {
+        case 1:
+          if (session.getOpenTrade().getEqResult() > 0) {
+            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: X");
+            // Xử lý click
+          } else {
+            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: T");
+            // Xử lý click
           }
-        } else {
-          if (totalMoney > 13) { // 14-15
-            // xử lý vào 1
-          } else if (totalMoney == 13) { // 13
-            // xử lý vào 3
-          } else if (totalMoney > 6) { // 12-11-10-9-8-7
-            // xử lý vào 2
-          } else if (totalMoney == 6) { // 6
-            // xử lý vào 6
+          break;
+        case 2:
+          if (session.getOpenTrade().getEqResult() > 0) {
+            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: X");
+            // Xử lý click
+          } else {
+            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: T");
+            // Xử lý click
           }
-        }
+          break;
 
-        // Đoạn này chờ khi job scan có kết quả mới, mang ra để check ví dụ
-        StatisticalEntity currentNew = event.getEntity();
-        if ((currentNew.getResult() == 0 && current.getEqResult() > 0)
-            || (currentNew.getResult() == 1 && current.getEqResult() < 0)) {
-          // ghi nhớ vừa nãy vào 1,2,3 hay 6 để + - tương ứng
-        }
+        case 3:
+          if (session.getOpenTrade().getEqResult() > 0) {
+            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: X");
+            // Xử lý click
+          } else {
+            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: T");
+            // Xử lý click
+          }
+          break;
 
-        // sau đó set currentNew = current để chờ lệnh tiếp theo
-
-        // Điều kiện chỗ while này thay vì true, thì set lại. biết khi totalMoney > 15 || totalMoney
-        // = 15 || totalMoney <=0 thì thoát vòng lặp
-      } while (true);
-
-    } catch (Exception e) {
-
-      botTradingService.sendMessageTrading("ERROR: " + e.getMessage());
-
-    } finally {
-
-      // =========================
-      // UNLOCK STATE
-      // =========================
-      state = TradeState.READY;
+        case 6:
+          if (session.getOpenTrade().getEqResult() > 0) {
+            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: X");
+            // Xử lý click
+          } else {
+            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: T");
+            // Xử lý click
+          }
+          break;
+      }
     }
   }
 }

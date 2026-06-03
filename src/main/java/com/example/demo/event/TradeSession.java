@@ -7,11 +7,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class SignalEvent {
-  private String type; // STRONG / MEDIUM / WEAK
-  private StatisticalEntity entity;
-  private String nextAction;
+public class TradeSession {
+  private int totalMoney = 15;
+  private StatisticalEntity openTrade;
+  private int vol;
+  private int num;
 }

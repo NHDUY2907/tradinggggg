@@ -208,6 +208,9 @@ public class ScreenCaptureService {
     // Tinh lech tren duoi
     setData(today, statisticalEntity);
 
+    SignalEvent event = new SignalEvent();
+    event.setEntity(statisticalEntity);
+
     if (Objects.nonNull(statisticalEntity.getLechTren())
         && Objects.nonNull(statisticalEntity.getLechDuoi())
         && statisticalEntity.getLechTren() <= 6
@@ -244,8 +247,9 @@ public class ScreenCaptureService {
                 + "👉 <b>Lệnh tiếp theo: </b> "
                 + nextAction
                 + "\n");
-
-        publisher.publishEvent(new SignalEvent("STRONG", statisticalEntity, nextAction));
+        event.setType("STRONG");
+        event.setNextAction(nextAction);
+        //        publisher.publishEvent(new SignalEvent("STRONG", statisticalEntity, nextAction));
       }
       if (Objects.nonNull(statisticalEntity.getLength())
           && MEDIUM.contains(statisticalEntity.getLength())) {
@@ -266,7 +270,9 @@ public class ScreenCaptureService {
                 + nextAction
                 + "\n");
 
-        publisher.publishEvent(new SignalEvent("MEDIUM", statisticalEntity, nextAction));
+        //        publisher.publishEvent(new SignalEvent("MEDIUM", statisticalEntity, nextAction));
+        event.setType("STRONG");
+        event.setNextAction(nextAction);
       }
 
       if (Objects.nonNull(statisticalEntity.getLength())
@@ -288,10 +294,13 @@ public class ScreenCaptureService {
                 + nextAction
                 + "\n");
 
-        publisher.publishEvent(new SignalEvent("WEAK", statisticalEntity, nextAction));
+        //        publisher.publishEvent(new SignalEvent("WEAK", statisticalEntity, nextAction));
+        event.setType("STRONG");
+        event.setNextAction(nextAction);
       }
     }
 
+    publisher.publishEvent(event);
     return result;
   }
 

@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 public class SetupController {
 
-    private final CalculatorService calculatorService;
-    private final ScreenCaptureService service;
+  private final CalculatorService calculatorService;
+  private final ScreenCaptureService service;
 
-    @PostMapping("/test-image")
-    public void testImage(
-            @RequestParam("x") int x, @RequestParam("y") int y, @RequestParam("size") int size)
-            throws Exception {
-        service.testImage(x, y, size);
-    }
+  @PostMapping("/test-image")
+  public void testImage(
+      @RequestParam("x") int x, @RequestParam("y") int y, @RequestParam("size") int size)
+      throws Exception {
+    service.testImage(x, y, size);
+  }
 }
