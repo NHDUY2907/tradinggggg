@@ -94,6 +94,7 @@ public class TradingService {
 
     StatisticalEntity current = event.getEntity();
 
+    // Luồng mở phiên vào lệnh rồi return
     if (session == null) {
 
       // Kiểm tra điều kiện mở phiên
@@ -103,60 +104,84 @@ public class TradingService {
 
       // Tạo session mới
       session = TradeSession.builder().openTrade(current).totalMoney(15).vol(1).num(1).build();
-      botTradingService.sendMessageTrading("Bắt đầu mở phiên");
+      botTradingService.sendMessageTrading(
+          "🚀 ========================= "
+              + "\n"
+              + "🚀 BẮT ĐẦU PHIÊN GIAO DỊCH "
+              + "\n"
+              + "🚀 =========================");
 
       if (session.getOpenTrade().getEqResult() > 0) {
-        botTradingService.sendMessageTrading("1. Lenh bat dau: X");
+        botTradingService.sendMessageTrading(
+            """
+                📌 Lệnh thứ      : %s
+                📊 Vol           : %s
+                💰 CurrentMoney  : %s
+                ➡️ Action        : X
+                """
+                .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
         // Xử lý click
+
       } else {
-        botTradingService.sendMessageTrading("1. Lenh bat dau: T");
+        botTradingService.sendMessageTrading(
+            """
+          📌 Lệnh thứ      : %s
+          📊 Vol           : %s
+          💰 CurrentMoney  : %s
+          ➡️ Action        : T
+          """
+                .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
         // Xử lý click
       }
 
       return;
     }
 
-    if (session.getOpenTrade() == null) {
-      if (!canContinueSession(current)) {
+    if (session.getOpenTrade() != null) {
+      // Thực hiện tính toán và đưa ra kết quả kết thúc hay tiếp tục
+      StatisticalEntity entityOld = session.getOpenTrade();
+
+      int totalMoneyNew;
+
+      if ((entityOld.getEqResult() > 0 && current.getResult() == 0)
+          || (entityOld.getEqResult() < 0 && current.getResult() == 1)) {
+        totalMoneyNew = session.getTotalMoney() + session.getVol();
+      } else {
+        totalMoneyNew = session.getTotalMoney() - session.getVol();
+      }
+
+      if (totalMoneyNew >= 15 || totalMoneyNew == 0) {
+        botTradingService.sendMessageTrading(
+            """
+                🏁 =========================
+                🏁 KẾT THÚC PHIÊN
+                🏁 =========================
+
+                📌 Số lệnh giao dịch : %s
+                💰 Vốn cuối phiên    : %s
+                📈 Kết quả           : %s
+                """
+                .formatted(
+                    session.getNum(), totalMoneyNew, totalMoneyNew > 15 ? "WIN ✅" : "LOSS ❌"));
+        session = null;
         return;
       }
-      session.setOpenTrade(current);
-      botTradingService.sendMessageTrading("MO LENH TIEP THEO #" + session.getNum());
-      return;
-    }
 
-    // Thực hiện tính toán và đưa ra kết quả kết thúc hay tiếp tục
-    StatisticalEntity entityOld = session.getOpenTrade();
+      // Đoạn này đánh dấu tôi đã tính toán xong lệnh trước rồi
+      session.setOpenTrade(null);
 
-    int totalMoneyNew;
+      session.setTotalMoney(totalMoneyNew);
 
-    if ((entityOld.getEqResult() > 0 && current.getResult() == 0)
-        || (entityOld.getEqResult() < 0 && current.getResult() == 1)) {
-      totalMoneyNew = session.getTotalMoney() + session.getVol();
-    } else {
-      totalMoneyNew = session.getTotalMoney() - session.getVol();
-    }
-
-    if (totalMoneyNew >= 15 || totalMoneyNew == 0) {
-      session = null;
-      botTradingService.sendMessageTrading("KET THUC PHIEN\n" + "Ket qua: " + totalMoneyNew);
-      return;
-    }
-
-    // Quan trọng:
-    // Lệnh này đã có kết quả rồi
-    session.setOpenTrade(null);
-
-    session.setTotalMoney(totalMoneyNew);
-
-    if (totalMoneyNew > 13) {
-      session.setVol(1);
-    } else if (totalMoneyNew == 13) {
-      session.setVol(3);
-    } else if (totalMoneyNew > 6) {
-      session.setVol(2);
-    } else if (totalMoneyNew == 6) {
-      session.setVol(6);
+      // Xác định vol tiếp theo
+      if (totalMoneyNew > 13) {
+        session.setVol(1);
+      } else if (totalMoneyNew == 13) {
+        session.setVol(3);
+      } else if (totalMoneyNew > 6) {
+        session.setVol(2);
+      } else if (totalMoneyNew == 6) {
+        session.setVol(6);
+      }
     }
 
     if (canContinueSession(current)) {
@@ -166,39 +191,95 @@ public class TradingService {
       switch (session.getVol()) {
         case 1:
           if (session.getOpenTrade().getEqResult() > 0) {
-            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: X");
+            botTradingService.sendMessageTrading(
+                """
+                          📌 Lệnh thứ      : %s
+                          📊 Vol           : %s
+                          💰 CurrentMoney  : %s
+                          ➡️ Action        : X
+                          """
+                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
           } else {
-            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: T");
+            botTradingService.sendMessageTrading(
+                """
+                    📌 Lệnh thứ      : %s
+                    📊 Vol           : %s
+                    💰 CurrentMoney  : %s
+                    ➡️ Action        : T
+                    """
+                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
           }
           break;
         case 2:
           if (session.getOpenTrade().getEqResult() > 0) {
-            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: X");
+            botTradingService.sendMessageTrading(
+                """
+                          📌 Lệnh thứ      : %s
+                          📊 Vol           : %s
+                          💰 CurrentMoney  : %s
+                          ➡️ Action        : X
+                          """
+                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
           } else {
-            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: T");
+            botTradingService.sendMessageTrading(
+                """
+                    📌 Lệnh thứ      : %s
+                    📊 Vol           : %s
+                    💰 CurrentMoney  : %s
+                    ➡️ Action        : T
+                    """
+                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
           }
           break;
 
         case 3:
           if (session.getOpenTrade().getEqResult() > 0) {
-            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: X");
+            botTradingService.sendMessageTrading(
+                """
+                          📌 Lệnh thứ      : %s
+                          📊 Vol           : %s
+                          💰 CurrentMoney  : %s
+                          ➡️ Action        : X
+                          """
+                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
           } else {
-            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: T");
+            botTradingService.sendMessageTrading(
+                """
+                    📌 Lệnh thứ      : %s
+                    📊 Vol           : %s
+                    💰 CurrentMoney  : %s
+                    ➡️ Action        : T
+                    """
+                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
           }
           break;
 
         case 6:
           if (session.getOpenTrade().getEqResult() > 0) {
-            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: X");
+            botTradingService.sendMessageTrading(
+                """
+                          📌 Lệnh thứ      : %s
+                          📊 Vol           : %s
+                          💰 CurrentMoney  : %s
+                          ➡️ Action        : X
+                          """
+                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
           } else {
-            botTradingService.sendMessageTrading(session.getNum() + ". Lenh bat dau: T");
+            botTradingService.sendMessageTrading(
+                """
+                    📌 Lệnh thứ      : %s
+                    📊 Vol           : %s
+                    💰 CurrentMoney  : %s
+                    ➡️ Action        : T
+                    """
+                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
           }
           break;

@@ -211,6 +211,11 @@ public class ScreenCaptureService {
     SignalEvent event = new SignalEvent();
     event.setEntity(statisticalEntity);
 
+    if (Objects.nonNull(statisticalEntity.getLength())
+        && WARNING.stream().anyMatch(w -> statisticalEntity.getLength().contains(w))) {
+      telegramService.sendMessageAdmin("WARNING: Kiểm tra hệ thống đang có trên 10 phần tử trùng");
+    }
+
     if (Objects.nonNull(statisticalEntity.getLechTren())
         && Objects.nonNull(statisticalEntity.getLechDuoi())
         && statisticalEntity.getLechTren() <= 6
@@ -221,12 +226,6 @@ public class ScreenCaptureService {
         nextAction = "X";
       } else {
         nextAction = "T";
-      }
-
-      if (Objects.nonNull(statisticalEntity.getLength())
-          && WARNING.stream().anyMatch(w -> statisticalEntity.getLength().contains(w))) {
-        telegramService.sendMessageAdmin(
-            "WARNING: Kiểm tra hệ thống đang có trên 10 phần tử trùng");
       }
 
       if (Objects.nonNull(statisticalEntity.getLength())
