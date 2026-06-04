@@ -31,7 +31,7 @@ public class MouseService {
   public void click(int x, int y, int clickCount) throws Exception {
 
     // trước thao tác
-    randomSleep(2000, 3000);
+    randomSleep(1000, 2000);
 
     Robot robot = getRobot();
 
@@ -50,8 +50,5 @@ public class MouseService {
         randomSleep(0, 1000);
       }
     }
-
-    // sau click cuối
-    randomSleep(1000, 2000);
   }
 }

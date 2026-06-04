@@ -114,13 +114,13 @@ public class TradingService {
     // =========================
     if (!enabled) {
       botTradingService.sendMessageTrading("Signal ignored (OFF)");
-
-      mouseService.click(tradeXx, tradeXy, 1);
-      mouseService.click(priceX, priceY, session.getVol());
-      mouseService.click(okX, okY, 1);
+//
+//      mouseService.click(tradeXx, tradeXy, 1);
+//      mouseService.click(priceX, priceY, session.getVol());
+//      mouseService.click(okX, okY, 1);
 
       mouseService.click(tradeTx, tradeTy, 1);
-      mouseService.click(priceX, priceY, session.getVol());
+      mouseService.click(priceX, priceY, 1);
       mouseService.click(okX, okY, 1);
 
       return;
