@@ -31,14 +31,11 @@ public class MouseService {
   public void click(int x, int y, int clickCount) throws Exception {
 
     // trước thao tác
-    randomSleep(1000, 2000);
+    randomSleep(0, 1000);
 
     Robot robot = getRobot();
 
     robot.mouseMove(x, y);
-
-    // sau move
-    randomSleep(1000, 2000);
 
     for (int i = 0; i < clickCount; i++) {
 

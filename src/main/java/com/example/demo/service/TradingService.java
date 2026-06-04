@@ -114,15 +114,6 @@ public class TradingService {
     // =========================
     if (!enabled) {
       botTradingService.sendMessageTrading("Signal ignored (OFF)");
-//
-//      mouseService.click(tradeXx, tradeXy, 1);
-//      mouseService.click(priceX, priceY, session.getVol());
-//      mouseService.click(okX, okY, 1);
-
-      mouseService.click(tradeTx, tradeTy, 1);
-      mouseService.click(priceX, priceY, 1);
-      mouseService.click(okX, okY, 1);
-
       return;
     }
 
@@ -191,6 +182,15 @@ public class TradingService {
       }
 
       if (totalMoneyNew >= 15 || totalMoneyNew == 0) {
+        String result;
+        if (totalMoneyNew > 15) {
+          result = "WIN ✅";
+        } else if (totalMoneyNew == 15) {
+          result = "HÒA ⚖️";
+        } else {
+          result = "LOSS ❌";
+        }
+
         botTradingService.sendMessageTrading(
             """
                 🏁 =========================
@@ -201,8 +201,7 @@ public class TradingService {
                 💰 Vốn cuối phiên    : %s
                 📈 Kết quả           : %s
                 """
-                .formatted(
-                    session.getNum(), totalMoneyNew, totalMoneyNew > 15 ? "WIN ✅" : "LOSS ❌"));
+                .formatted(session.getNum(), totalMoneyNew, result));
         session = null;
         return;
       }
