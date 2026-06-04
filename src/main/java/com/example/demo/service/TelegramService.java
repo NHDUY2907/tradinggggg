@@ -32,6 +32,12 @@ public class TelegramService {
   @Value("${telegram.command.chat.id}")
   private String commandChatId;
 
+  @Value("${trade.point.start.x}")
+  private int startX;
+
+  @Value("${trade.point.start.y}")
+  private int startY;
+
   private final RestTemplate restTemplate = new RestTemplate();
 
   // update cuối cùng đã xử lý
@@ -226,7 +232,9 @@ public class TelegramService {
 
     try {
       restTemplate.postForObject(
-          "http://localhost:9191/job/start?x=2475&y=572&size=9", null, String.class);
+          "http://localhost:9191/job/start?x=" + startX + "&y=" + startY + "&size=9",
+          null,
+          String.class);
     } catch (Exception e) {
       sendMessageAdmin("❌ Call API start failed");
     }

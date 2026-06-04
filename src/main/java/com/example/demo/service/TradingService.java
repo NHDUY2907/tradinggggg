@@ -6,6 +6,7 @@ import com.example.demo.event.SignalEvent;
 import com.example.demo.event.TradeSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,29 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class TradingService {
+  @Value("${trade.point.x.x}")
+  private int tradeXx;
+
+  @Value("${trade.point.x.y}")
+  private int tradeXy;
+
+  @Value("${trade.point.t.x}")
+  private int tradeTx;
+
+  @Value("${trade.point.t.y}")
+  private int tradeTy;
+
+  @Value("${trade.point.price.x}")
+  private int priceX;
+
+  @Value("${trade.point.price.y}")
+  private int priceY;
+
+  @Value("${trade.point.trade.x}")
+  private int okX;
+
+  @Value("${trade.point.trade.y}")
+  private int okY;
 
   private static final Set<String> STRONG =
       Set.of(
@@ -45,6 +69,7 @@ public class TradingService {
           "X: 1-2-3-4-5 | T: 1-2-3-4-5");
 
   private final BotTradingService botTradingService;
+  private final MouseService mouseService;
 
   private volatile boolean enabled = false;
 
@@ -83,12 +108,21 @@ public class TradingService {
   }
 
   @EventListener
-  public void onSignalEvent(SignalEvent event) {
+  public void onSignalEvent(SignalEvent event) throws Exception {
     // =========================
     // GATE 1: ON/OFF SYSTEM
     // =========================
     if (!enabled) {
       botTradingService.sendMessageTrading("Signal ignored (OFF)");
+
+      mouseService.click(tradeXx, tradeXy, 1);
+      mouseService.click(priceX, priceY, session.getVol());
+      mouseService.click(okX, okY, 1);
+
+      mouseService.click(tradeTx, tradeTy, 1);
+      mouseService.click(priceX, priceY, session.getVol());
+      mouseService.click(okX, okY, 1);
+
       return;
     }
 
@@ -121,6 +155,9 @@ public class TradingService {
                 """
                 .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
         // Xử lý click
+        mouseService.click(tradeXx, tradeXy, 1);
+        mouseService.click(priceX, priceY, session.getVol());
+        mouseService.click(okX, okY, 1);
 
       } else {
         botTradingService.sendMessageTrading(
@@ -132,6 +169,9 @@ public class TradingService {
           """
                 .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
         // Xử lý click
+        mouseService.click(tradeTx, tradeTy, 1);
+        mouseService.click(priceX, priceY, session.getVol());
+        mouseService.click(okX, okY, 1);
       }
 
       return;
@@ -200,6 +240,9 @@ public class TradingService {
                           """
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
+            mouseService.click(tradeXx, tradeXy, 1);
+            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(okX, okY, 1);
           } else {
             botTradingService.sendMessageTrading(
                 """
@@ -210,6 +253,9 @@ public class TradingService {
                     """
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
+            mouseService.click(tradeTx, tradeTy, 1);
+            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(okX, okY, 1);
           }
           break;
         case 2:
@@ -223,6 +269,9 @@ public class TradingService {
                           """
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
+            mouseService.click(tradeXx, tradeXy, 1);
+            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(okX, okY, 1);
           } else {
             botTradingService.sendMessageTrading(
                 """
@@ -233,6 +282,9 @@ public class TradingService {
                     """
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
+            mouseService.click(tradeTx, tradeTy, 1);
+            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(okX, okY, 1);
           }
           break;
 
@@ -247,6 +299,9 @@ public class TradingService {
                           """
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
+            mouseService.click(tradeXx, tradeXy, 1);
+            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(okX, okY, 1);
           } else {
             botTradingService.sendMessageTrading(
                 """
@@ -257,6 +312,9 @@ public class TradingService {
                     """
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
+            mouseService.click(tradeTx, tradeTy, 1);
+            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(okX, okY, 1);
           }
           break;
 
@@ -271,6 +329,9 @@ public class TradingService {
                           """
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
+            mouseService.click(tradeXx, tradeXy, 1);
+            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(okX, okY, 1);
           } else {
             botTradingService.sendMessageTrading(
                 """
@@ -281,6 +342,9 @@ public class TradingService {
                     """
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
+            mouseService.click(tradeTx, tradeTy, 1);
+            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(okX, okY, 1);
           }
           break;
       }

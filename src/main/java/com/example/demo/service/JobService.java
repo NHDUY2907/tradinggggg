@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,12 @@ import java.util.concurrent.ScheduledFuture;
 @Service
 @RequiredArgsConstructor
 public class JobService {
+
+  @Value("${trade.point.start.x}")
+  private int startX;
+
+  @Value("${trade.point.start.y}")
+  private int startY;
 
   private final ThreadPoolTaskScheduler scheduler;
   private final ScreenCaptureService screenCaptureService;
@@ -114,7 +121,7 @@ public class JobService {
         telegramService.sendMessageAdmin(
             "⚠️ <b>JOB CHƯA CHẠY</b>" + "\n\n" + "Hệ thống đang tự khởi động lại...");
 
-        startJob(2475, 572, 9);
+        startJob(startX, startY, 9);
 
       } else {
 
