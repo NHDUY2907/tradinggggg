@@ -7,7 +7,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -16,7 +19,6 @@ import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TelegramService {
   private final TradingService tradingService;
 
@@ -38,7 +40,25 @@ public class TelegramService {
   @Value("${trade.point.start.y}")
   private int startY;
 
-  private final RestTemplate restTemplate = new RestTemplate();
+  private final RestTemplate restTemplate;
+
+  private final ExecutorService commandExecutor = Executors.newSingleThreadExecutor();
+
+  private final AtomicLong lastPollingSuccess = new AtomicLong(System.currentTimeMillis());
+
+  public TelegramService(TradingService tradingService) {
+
+    this.tradingService = tradingService;
+
+    SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+
+    factory.setConnectTimeout(10_000);
+
+    // Telegram timeout=60
+    factory.setReadTimeout(70_000);
+
+    this.restTemplate = new RestTemplate(factory);
+  }
 
   // update cuối cùng đã xử lý
   private long updateId = 0;
@@ -106,11 +126,55 @@ public class TelegramService {
 
     Thread pollingThread = new Thread(this::longPolling);
 
+    pollingThread.setName("telegram-polling");
     pollingThread.setDaemon(true);
-
     pollingThread.start();
 
-    System.out.println("Telegram command bot started...");
+    Thread watchdogThread = new Thread(this::watchdog);
+
+    watchdogThread.setName("telegram-watchdog");
+    watchdogThread.setDaemon(true);
+    watchdogThread.start();
+
+    log.info("Telegram command bot started...");
+  }
+
+  private void watchdog() {
+
+    boolean notified = false;
+
+    while (true) {
+
+      try {
+
+        long diff = System.currentTimeMillis() - lastPollingSuccess.get();
+
+        if (diff > 120_000) {
+
+          if (!notified) {
+
+            sendMessageAdmin("⚠️ Telegram polling bất thường");
+
+            notified = true;
+          }
+
+        } else {
+
+          if (notified) {
+
+            sendMessageAdmin("✅ Telegram polling đã phục hồi");
+          }
+
+          notified = false;
+        }
+
+        Thread.sleep(60_000);
+
+      } catch (Exception e) {
+
+        log.error("Watchdog error", e);
+      }
+    }
   }
 
   // =========================================================
@@ -131,6 +195,8 @@ public class TelegramService {
 
         Map response = restTemplate.getForObject(url, Map.class);
 
+        lastPollingSuccess.set(System.currentTimeMillis());
+
         if (response == null) {
           continue;
         }
@@ -143,7 +209,7 @@ public class TelegramService {
 
         for (Map result : results) {
 
-          updateId = ((Number) result.get("update_id")).longValue();
+          long currentUpdateId = ((Number) result.get("update_id")).longValue();
 
           Map message = (Map) result.get("message");
 
@@ -163,18 +229,36 @@ public class TelegramService {
             continue;
           }
 
-          System.out.println("COMMAND: " + text);
+          log.info("COMMAND: {}", text);
 
-          handleCommand(text.trim().toLowerCase());
+          commandExecutor.submit(
+              () -> {
+                try {
+
+                  handleCommand(text.trim().toLowerCase());
+
+                } catch (Exception e) {
+
+                  log.error("Handle command failed", e);
+
+                  sendMessageAdmin("❌ Command failed");
+                }
+              });
+
+          updateId = currentUpdateId;
         }
 
-      } catch (Exception e) {
+      } catch (Throwable e) {
 
-        e.printStackTrace();
+        log.error("Polling error", e);
 
         try {
+
           Thread.sleep(3000);
-        } catch (InterruptedException ignored) {
+
+        } catch (InterruptedException ex) {
+
+          Thread.currentThread().interrupt();
         }
       }
     }
