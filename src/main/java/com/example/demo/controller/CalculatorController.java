@@ -1,7 +1,6 @@
 package com.example.demo.controller;
 
 import com.example.demo.service.CalculatorService;
-import com.example.demo.service.ScreenCaptureService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

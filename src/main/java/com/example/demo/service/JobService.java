@@ -23,7 +23,7 @@ public class JobService {
   private int startY;
 
   private final ThreadPoolTaskScheduler scheduler;
-  private final ScreenCaptureService screenCaptureService;
+  private final ScanService scanService;
   private final TelegramService telegramService;
 
   private ScheduledFuture<?> future;
@@ -44,7 +44,7 @@ public class JobService {
               () -> {
                 try {
 
-                  screenCaptureService.captureCircleCenter(x, y, size);
+                  scanService.captureCircleCenter(x, y, size);
 
                 } catch (Exception e) {
 
