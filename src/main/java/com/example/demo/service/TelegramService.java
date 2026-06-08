@@ -21,6 +21,7 @@ import java.util.Map;
 @Service
 public class TelegramService {
   private final TradingService tradingService;
+  private final MouseService mouseService;
 
   @Value("${telegram.notify.bot.token}")
   private String notifyBotToken;
@@ -40,17 +41,19 @@ public class TelegramService {
   @Value("${trade.point.start.y}")
   private int startY;
 
+
   private final RestTemplate restTemplate;
 
   private final ExecutorService commandExecutor = Executors.newSingleThreadExecutor();
 
   private final AtomicLong lastPollingSuccess = new AtomicLong(System.currentTimeMillis());
 
-  public TelegramService(TradingService tradingService) {
+  public TelegramService(TradingService tradingService, MouseService mouseService) {
 
     this.tradingService = tradingService;
+      this.mouseService = mouseService;
 
-    SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+      SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
 
     factory.setConnectTimeout(10_000);
 
@@ -268,7 +271,7 @@ public class TelegramService {
   // HANDLE COMMAND
   // =========================================================
 
-  private void handleCommand(String command) {
+  private void handleCommand(String command) throws Exception {
 
     switch (command) {
       case "/start":
@@ -291,6 +294,10 @@ public class TelegramService {
       case "/trade_off":
         tradingService.stop();
         sendMessageAdmin("🛑 Trading OFF");
+        break;
+
+      case "/reset-browser":
+        mouseService.resetBrowser();
         break;
 
       case "/wol":
