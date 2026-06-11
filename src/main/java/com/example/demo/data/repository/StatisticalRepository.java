@@ -20,4 +20,6 @@ public interface StatisticalRepository
   List<StatisticalEntity> findTop50ByDateOrderByStatisticalIdDesc(Integer ytd);
 
   List<StatisticalEntity> findTop100ByDateOrderByStatisticalIdDesc(Integer ytd);
+
+  StatisticalEntity findByStatisticalId(Integer id);
 }

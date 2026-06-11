@@ -29,24 +29,23 @@ public class CalculatorService {
 
     Collections.reverse(statisticalEntities);
 
-    StringBuilder message = new StringBuilder();
+    StringBuilder sb = new StringBuilder();
+    sb.append("📊 <b>THỐNG KÊ 10 KẾT QUẢ GẦN NHẤT</b>\n\n");
+    sb.append("<pre>");
+    sb.append("┌─────┬────────┐\n");
+    sb.append("│ STT │ RESULT │\n");
+    sb.append("├─────┼────────┤\n");
 
     for (int i = 0; i < statisticalEntities.size(); i++) {
-
-      StatisticalEntity entity = statisticalEntities.get(i);
-
-      // Record mới nhất (cuối cùng)
-      boolean isLast = (i == statisticalEntities.size() - 1);
-
-      message.append(i + 1).append(". ").append(entity.getResult());
-
-      if (isLast) {
-        message.append(" | Length: ").append(entity.getLength());
-      }
-
-      message.append("\n");
+      sb.append(String.format("│ %3d │ %6d │\n", i + 1, statisticalEntities.get(i).getResult()));
     }
-    telegramService.sendMessageAdmin(message.toString());
+
+    sb.append("└─────┴────────┘\n");
+    sb.append("</pre>\n");
+    sb.append("📏 <b>Length hiện tại:</b> ")
+        .append(statisticalEntities.get(statisticalEntities.size() - 1).getLength());
+
+    telegramService.sendMessageAdmin(sb.toString());
   }
 
   public Map<Integer, Double> calculatorMain(List<Integer> ytd) {

@@ -1,13 +1,16 @@
 package com.example.demo.service;
 
+import com.example.demo.data.entity.StatisticalEntity;
+import com.example.demo.data.repository.StatisticalRepository;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
@@ -22,6 +25,7 @@ import java.util.Map;
 public class TelegramService {
   private final TradingService tradingService;
   private final MouseService mouseService;
+  private final StatisticalRepository statisticalRepository;
 
   @Value("${telegram.notify.bot.token}")
   private String notifyBotToken;
@@ -48,7 +52,7 @@ public class TelegramService {
 
   private final AtomicLong lastPollingSuccess = new AtomicLong(System.currentTimeMillis());
 
-  public TelegramService(TradingService tradingService, MouseService mouseService) {
+  public TelegramService(TradingService tradingService, MouseService mouseService, StatisticalRepository statisticalRepository) {
 
     this.tradingService = tradingService;
       this.mouseService = mouseService;
@@ -61,6 +65,7 @@ public class TelegramService {
     factory.setReadTimeout(70_000);
 
     this.restTemplate = new RestTemplate(factory);
+    this.statisticalRepository = statisticalRepository;
   }
 
   // update cuối cùng đã xử lý
@@ -271,9 +276,9 @@ public class TelegramService {
   // HANDLE COMMAND
   // =========================================================
 
-  private void handleCommand(String command) throws Exception {
-
-    switch (command) {
+  private void handleCommand(String message) throws Exception {
+    String[] args = message.trim().split("\\s+");
+    switch (args[0]) {
       case "/start":
         callStart();
         break;
@@ -284,6 +289,21 @@ public class TelegramService {
 
       case "/data":
         getData();
+        break;
+      // ví dụ: /update 14789 0
+      case "/update":
+        int id = Integer.parseInt(args[1]);
+        int value = Integer.parseInt(args[2]);
+        callUpdate(id, value);
+        break;
+
+      // vi du: /insert 0 1 0 1 1 1
+      case "/insert":
+        List<Integer> values = Arrays.stream(args)
+                .skip(1)
+                .map(Integer::parseInt)
+                .toList();
+        callInsert(values);
         break;
 
       case "/trade_on":
@@ -346,6 +366,32 @@ public class TelegramService {
       restTemplate.postForObject("http://localhost:9191/calculator/get-data", null, String.class);
     } catch (Exception e) {
       sendMessageAdmin("❌ Call API get data failed");
+    }
+  }
+
+  private void callUpdate(Integer id, Integer value) {
+    try {
+      StatisticalEntity statisticalEntity = statisticalRepository.findByStatisticalId(id);
+      statisticalEntity.setResult(value);
+      statisticalRepository.save(statisticalEntity);
+    } catch (Exception e) {
+      sendMessageAdmin("❌ Call API update data failed");
+    }
+  }
+
+  private void callInsert(List<Integer> values) {
+    try {
+      List<StatisticalEntity> entities = values.stream()
+              .map(value -> {
+                StatisticalEntity entity = new StatisticalEntity();
+                entity.setResult(value);
+                return entity;
+              })
+              .toList();
+
+      statisticalRepository.saveAll(entities);
+    } catch (Exception e) {
+      sendMessageAdmin("❌ Call API INSERT data failed");
     }
   }
 
