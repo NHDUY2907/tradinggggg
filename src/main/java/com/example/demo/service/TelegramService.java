@@ -45,19 +45,21 @@ public class TelegramService {
   @Value("${trade.point.start.y}")
   private int startY;
 
-
   private final RestTemplate restTemplate;
 
   private final ExecutorService commandExecutor = Executors.newSingleThreadExecutor();
 
   private final AtomicLong lastPollingSuccess = new AtomicLong(System.currentTimeMillis());
 
-  public TelegramService(TradingService tradingService, MouseService mouseService, StatisticalRepository statisticalRepository) {
+  public TelegramService(
+      TradingService tradingService,
+      MouseService mouseService,
+      StatisticalRepository statisticalRepository) {
 
     this.tradingService = tradingService;
-      this.mouseService = mouseService;
+    this.mouseService = mouseService;
 
-      SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+    SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
 
     factory.setConnectTimeout(10_000);
 
@@ -299,10 +301,7 @@ public class TelegramService {
 
       // vi du: /insert 0 1 0 1 1 1
       case "/insert":
-        List<Integer> values = Arrays.stream(args)
-                .skip(1)
-                .map(Integer::parseInt)
-                .toList();
+        List<Integer> values = Arrays.stream(args).skip(1).map(Integer::parseInt).toList();
         callInsert(values);
         break;
 
@@ -380,16 +379,22 @@ public class TelegramService {
   }
 
   private void callInsert(List<Integer> values) {
+    int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+
     try {
-      List<StatisticalEntity> entities = values.stream()
-              .map(value -> {
-                StatisticalEntity entity = new StatisticalEntity();
-                entity.setResult(value);
-                return entity;
-              })
+      List<StatisticalEntity> entities =
+          values.stream()
+              .map(
+                  value -> {
+                    StatisticalEntity entity = new StatisticalEntity();
+                    entity.setResult(value);
+                    entity.setDate(today);
+                    return entity;
+                  })
               .toList();
 
       statisticalRepository.saveAll(entities);
+      sendMessageAdmin("✅ Call API INSERT data");
     } catch (Exception e) {
       sendMessageAdmin("❌ Call API INSERT data failed");
     }
