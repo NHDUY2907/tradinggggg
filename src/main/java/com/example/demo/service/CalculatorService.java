@@ -19,10 +19,12 @@ public class CalculatorService {
   private final TelegramService telegramService;
 
   public void getData() {
-    int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+    int today = Integer.parseInt(LocalDate.now()
+            .format(DateTimeFormatter.ofPattern("yyyyMMdd")));
 
     List<StatisticalEntity> statisticalEntities =
-        statisticalRepository.findTop10ByDateOrderByStatisticalIdDesc(today);
+            statisticalRepository.findTop10ByDateOrderByStatisticalIdDesc(today);
+
     if (statisticalEntities == null || statisticalEntities.isEmpty()) {
       return;
     }
@@ -32,18 +34,25 @@ public class CalculatorService {
     StringBuilder sb = new StringBuilder();
     sb.append("📊 <b>THỐNG KÊ 10 KẾT QUẢ GẦN NHẤT</b>\n\n");
     sb.append("<pre>");
-    sb.append("┌─────┬────────┐\n");
-    sb.append("│ STT │ RESULT │\n");
-    sb.append("├─────┼────────┤\n");
+    sb.append("┌─────┬──────┬────────┐\n");
+    sb.append("│ STT │  ID  │ RESULT │\n");
+    sb.append("├─────┼──────┼────────┤\n");
 
     for (int i = 0; i < statisticalEntities.size(); i++) {
-      sb.append(String.format("│ %3d │ %6d │\n", i + 1, statisticalEntities.get(i).getResult()));
+      StatisticalEntity e = statisticalEntities.get(i);
+
+      sb.append(String.format(
+              "│ %3d │ %4d │ %6d │\n",
+              i + 1,
+              e.getStatisticalId(),
+              e.getResult()
+      ));
     }
 
-    sb.append("└─────┴────────┘\n");
+    sb.append("└─────┴──────┴────────┘\n");
     sb.append("</pre>\n");
     sb.append("📏 <b>Length hiện tại:</b> ")
-        .append(statisticalEntities.get(statisticalEntities.size() - 1).getLength());
+            .append(statisticalEntities.get(statisticalEntities.size() - 1).getLength());
 
     telegramService.sendMessageAdmin(sb.toString());
   }

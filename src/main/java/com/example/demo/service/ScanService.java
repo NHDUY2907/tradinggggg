@@ -6,6 +6,8 @@ import com.example.demo.event.SignalEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
@@ -190,8 +192,11 @@ public class ScanService {
 
   public int detectBlackOrWhite(BufferedImage captured) throws Exception {
 
-    BufferedImage den = loadImage("C:\\Users\\T9 Plus\\Desktop\\Capture\\den.png");
-    BufferedImage trang = loadImage("C:\\Users\\T9 Plus\\Desktop\\Capture\\trang.png");
+    Resource resourceDen = new ClassPathResource("images/den.png");
+    BufferedImage den = ImageIO.read(resourceDen.getInputStream());
+
+    Resource resourceTrang = new ClassPathResource("images/trang.png");
+    BufferedImage trang = ImageIO.read(resourceTrang.getInputStream());
 
     double diffBlack = compareImages(captured, den);
     double diffWhite = compareImages(captured, trang);
