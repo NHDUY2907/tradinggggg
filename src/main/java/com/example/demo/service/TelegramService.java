@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
+import java.awt.*;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -315,6 +316,10 @@ public class TelegramService {
         sendMessageAdmin("🛑 Trading OFF");
         break;
 
+      case "/get-location":
+        getLocation();
+        break;
+
       case "/reset-browser":
         mouseService.resetBrowser();
         break;
@@ -375,6 +380,19 @@ public class TelegramService {
       statisticalRepository.save(statisticalEntity);
     } catch (Exception e) {
       sendMessageAdmin("❌ Call API update data failed");
+    }
+  }
+
+  private void getLocation() {
+    try {
+      PointerInfo a = MouseInfo.getPointerInfo();
+      Point p = a.getLocation();
+
+      String msg = "X: " + p.x + " | Y: " + p.y;
+      sendMessageAdmin(msg);
+
+    } catch (Exception e) {
+      sendMessageAdmin("❌ Call API INSERT data failed");
     }
   }
 
