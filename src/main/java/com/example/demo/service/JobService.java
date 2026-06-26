@@ -104,36 +104,4 @@ public class JobService {
 
     return future != null && !future.isCancelled() && !future.isDone();
   }
-
-  // =========================================================
-  // AUTO CHECK EVERY DAY 5:30 AM
-  // =========================================================
-
-  @Scheduled(cron = "30 29 5 * * *")
-  public void autoStartJobMorning() {
-
-    try {
-
-      log.info("Checking capture job at 5:30 AM");
-
-      if (!isRunning()) {
-
-        telegramService.sendMessageAdmin(
-            "⚠️ <b>JOB CHƯA CHẠY</b>" + "\n\n" + "Hệ thống đang tự khởi động lại...");
-
-        startJob(startX, startY, 9);
-
-      } else {
-
-        telegramService.sendMessageAdmin("✅ <b>JOB VẪN ĐANG HOẠT ĐỘNG BÌNH THƯỜNG</b>");
-      }
-
-    } catch (Exception e) {
-
-      log.error("Auto start job failed", e);
-
-      telegramService.sendMessageAdmin(
-          "❌ <b>TỰ KHỞI ĐỘNG JOB THẤT BẠI</b>" + "\n\n" + "Chi tiết:" + "\n" + e.getMessage());
-    }
-  }
 }
