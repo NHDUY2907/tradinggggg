@@ -52,6 +52,9 @@ public class TelegramService {
 
   private final AtomicLong lastPollingSuccess = new AtomicLong(System.currentTimeMillis());
 
+  // Luồng polling hiện hành; dùng để watchdog tự khởi động lại khi treo.
+  private volatile Thread pollingThread;
+
   public TelegramService(
       TradingService tradingService,
       MouseService mouseService,
@@ -135,11 +138,7 @@ public class TelegramService {
   @PostConstruct
   public void startTelegramPolling() {
 
-    Thread pollingThread = new Thread(this::longPolling);
-
-    pollingThread.setName("telegram-polling");
-    pollingThread.setDaemon(true);
-    pollingThread.start();
+    startPollingThread();
 
     Thread watchdogThread = new Thread(this::watchdog);
 
@@ -148,6 +147,26 @@ public class TelegramService {
     watchdogThread.start();
 
     log.info("Telegram command bot started...");
+  }
+
+  // Tạo (hoặc tạo lại) luồng polling. Luồng cũ nếu còn sống sẽ bị yêu cầu dừng;
+  // vòng longPolling chỉ chạy khi nó vẫn là pollingThread hiện hành nên luồng cũ tự thoát.
+  private synchronized void startPollingThread() {
+
+    Thread old = pollingThread;
+
+    if (old != null && old.isAlive()) {
+      old.interrupt();
+    }
+
+    Thread t = new Thread(this::longPolling);
+
+    t.setName("telegram-polling");
+    t.setDaemon(true);
+
+    pollingThread = t;
+
+    t.start();
   }
 
   private void watchdog() {
@@ -164,10 +183,13 @@ public class TelegramService {
 
           if (!notified) {
 
-            sendMessageAdmin("⚠️ Telegram polling bất thường");
+            sendMessageAdmin("⚠️ Telegram polling bất thường, đang khởi động lại...");
 
             notified = true;
           }
+
+          // Tự khởi động lại luồng polling khi phát hiện treo.
+          startPollingThread();
 
         } else {
 
@@ -189,12 +211,55 @@ public class TelegramService {
   }
 
   // =========================================================
+  // SKIP PENDING UPDATES (tránh replay command cũ khi restart)
+  // =========================================================
+
+  private void skipPendingUpdates() {
+
+    try {
+
+      // offset=-1 trả về update mới nhất đang tồn đọng (nếu có).
+      String url =
+          "https://api.telegram.org/bot" + commandBotToken + "/getUpdates?timeout=0&offset=-1";
+
+      Map response = restTemplate.getForObject(url, Map.class);
+
+      if (response == null) {
+        return;
+      }
+
+      List<Map> results = (List<Map>) response.get("result");
+
+      if (results == null || results.isEmpty()) {
+        return;
+      }
+
+      // Đặt updateId = update mới nhất => vòng polling sẽ gọi offset=updateId+1,
+      // confirm và bỏ qua toàn bộ command tồn đọng.
+      Map last = results.get(results.size() - 1);
+      updateId = ((Number) last.get("update_id")).longValue();
+
+      log.info("Đã bỏ qua command tồn đọng, bắt đầu từ offset {}", updateId + 1);
+
+    } catch (Exception e) {
+
+      log.error("Skip pending updates failed", e);
+    }
+  }
+
+  // =========================================================
   // LONG POLLING
   // =========================================================
 
   private void longPolling() {
 
-    while (true) {
+    // Bỏ qua toàn bộ command tồn đọng trước khi vào vòng polling
+    // để tránh thực thi lại lệnh cũ sau khi service khởi động lại.
+    skipPendingUpdates();
+
+    // Chỉ chạy khi vẫn là luồng polling hiện hành; nếu watchdog đã tạo luồng mới
+    // thì luồng cũ này sẽ tự thoát ở vòng lặp kế tiếp, tránh chạy song song (409).
+    while (pollingThread == Thread.currentThread()) {
 
       try {
 
