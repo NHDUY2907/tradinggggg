@@ -181,7 +181,9 @@ public class TradingService {
         totalMoneyNew = session.getTotalMoney() - session.getVol();
       }
 
-      if (totalMoneyNew >= 15 || totalMoneyNew == 0) {
+      // Dùng <= 0 thay vì == 0: vol nhảy bước 2/3/6 có thể vượt qua 0 xuống số âm,
+      // nếu chỉ chặn == 0 thì phiên không bao giờ kết thúc -> lặp vô tận về vol.
+      if (totalMoneyNew >= 15 || totalMoneyNew <= 0) {
         String result;
         if (totalMoneyNew > 15) {
           result = "WIN ✅";

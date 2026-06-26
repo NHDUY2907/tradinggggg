@@ -74,6 +74,9 @@ public class ScanService {
   private Robot robot; // lazy init
   private static final String SAVE_DIR = "C:\\Users\\T9 Plus\\Desktop\\Capture\\";
 
+  // Cache Robot theo từng màn hình để không tạo mới mỗi lần capture (70s/lần, 24/7).
+  private final Map<GraphicsDevice, Robot> robotCache = new HashMap<>();
+
   // Lazy init Robot
   private Robot getRobot() throws AWTException {
     if (robot == null) {
@@ -81,6 +84,16 @@ public class ScanService {
       robot = new Robot();
     }
     return robot;
+  }
+
+  // Lazy init + cache Robot theo GraphicsDevice tương ứng.
+  private synchronized Robot getRobot(GraphicsDevice device) throws AWTException {
+    Robot r = robotCache.get(device);
+    if (r == null) {
+      r = new Robot(device);
+      robotCache.put(device, r);
+    }
+    return r;
   }
 
   private GraphicsDevice getScreenDevice(int x, int y) {
@@ -126,7 +139,7 @@ public class ScanService {
     int y = centerY - radius;
 
     GraphicsDevice device = getScreenDevice(x, y);
-    Robot r = new Robot(device);
+    Robot r = getRobot(device);
 
     Rectangle rect = new Rectangle(x, y, diameter, diameter);
     BufferedImage image = r.createScreenCapture(rect);
@@ -144,7 +157,7 @@ public class ScanService {
     int y = centerY - radius;
 
     GraphicsDevice device = getScreenDevice(x, y);
-    Robot r = new Robot(device);
+    Robot r = getRobot(device);
 
     Rectangle rect = new Rectangle(x, y, diameter, diameter);
 

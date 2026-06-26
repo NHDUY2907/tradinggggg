@@ -46,7 +46,12 @@ public class TelegramService {
   @Value("${trade.point.start.y}")
   private int startY;
 
+  // RestTemplate dùng cho gửi tin nhắn + gọi API localhost: timeout NGẮN.
+  // Tránh việc Telegram/localhost chậm làm treo vòng capture (chạy đồng bộ trên thread scheduler).
   private final RestTemplate restTemplate;
+
+  // RestTemplate RIÊNG cho long polling getUpdates: read timeout phải > timeout=60 của Telegram.
+  private final RestTemplate pollingRestTemplate;
 
   private final ExecutorService commandExecutor = Executors.newSingleThreadExecutor();
 
@@ -63,14 +68,19 @@ public class TelegramService {
     this.tradingService = tradingService;
     this.mouseService = mouseService;
 
+    // RestTemplate gửi tin nhắn + gọi localhost: timeout NGẮN để không treo vòng capture.
     SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-
-    factory.setConnectTimeout(10_000);
-
-    // Telegram timeout=60
-    factory.setReadTimeout(70_000);
-
+    factory.setConnectTimeout(5_000);
+    factory.setReadTimeout(10_000);
     this.restTemplate = new RestTemplate(factory);
+
+    // RestTemplate RIÊNG cho long polling: read timeout phải lớn hơn timeout=60 của Telegram.
+    SimpleClientHttpRequestFactory pollingFactory = new SimpleClientHttpRequestFactory();
+    pollingFactory.setConnectTimeout(10_000);
+    // Telegram timeout=60
+    pollingFactory.setReadTimeout(70_000);
+    this.pollingRestTemplate = new RestTemplate(pollingFactory);
+
     this.statisticalRepository = statisticalRepository;
   }
 
@@ -222,7 +232,7 @@ public class TelegramService {
       String url =
           "https://api.telegram.org/bot" + commandBotToken + "/getUpdates?timeout=0&offset=-1";
 
-      Map response = restTemplate.getForObject(url, Map.class);
+      Map response = pollingRestTemplate.getForObject(url, Map.class);
 
       if (response == null) {
         return;
@@ -269,7 +279,7 @@ public class TelegramService {
                 + "/getUpdates?timeout=60&offset="
                 + (updateId + 1);
 
-        Map response = restTemplate.getForObject(url, Map.class);
+        Map response = pollingRestTemplate.getForObject(url, Map.class);
 
         lastPollingSuccess.set(System.currentTimeMillis());
 

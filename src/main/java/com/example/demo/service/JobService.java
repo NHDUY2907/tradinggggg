@@ -46,12 +46,24 @@ public class JobService {
 
                   scanService.captureCircleCenter(x, y, size);
 
-                } catch (Exception e) {
-
+                } catch (Throwable e) {
+                  // Bắt cả Throwable (gồm Error như OutOfMemoryError/AWTError):
+                  // nếu để lọt ra ngoài, scheduleAtFixedRate sẽ âm thầm hủy job vĩnh viễn.
                   log.error("Error while running capture job", e);
 
-                  telegramService.sendMessageAdmin(
-                      "❌ <b>JOB CAPTURE BỊ LỖI</b>" + "\n\n" + "Chi tiết:" + "\n" + e.getMessage());
+                  try {
+                    telegramService.sendMessageAdmin(
+                        "❌ <b>JOB CAPTURE BỊ LỖI</b>"
+                            + "\n\n"
+                            + "Loại lỗi: "
+                            + e.getClass().getSimpleName()
+                            + "\n"
+                            + "Chi tiết:"
+                            + "\n"
+                            + e.getMessage());
+                  } catch (Throwable notifyError) {
+                    log.error("Notify admin (job capture error) failed", notifyError);
+                  }
                 }
               },
               Instant.now(),
