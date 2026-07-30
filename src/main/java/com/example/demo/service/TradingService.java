@@ -147,7 +147,7 @@ public class TradingService {
                 .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
         // Xử lý click
         mouseService.click(tradeXx, tradeXy, 1);
-        mouseService.click(priceX, priceY, session.getVol());
+        mouseService.click(priceX, priceY, session.getVol() * 3);
         mouseService.click(okX, okY, 1);
 
       } else {
