@@ -36,6 +36,9 @@ public class TradingService {
   @Value("${trade.point.price.y}")
   private int priceY;
 
+  @Value("${trade.point.price.solan}")
+  private int soLanPrice;
+
   @Value("${trade.point.trade.x}")
   private int okX;
 
@@ -147,7 +150,7 @@ public class TradingService {
                 .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
         // Xử lý click
         mouseService.click(tradeXx, tradeXy, 1);
-        mouseService.click(priceX, priceY, session.getVol() * 3);
+        mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
         mouseService.click(okX, okY, 1);
 
       } else {
@@ -161,7 +164,7 @@ public class TradingService {
                 .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
         // Xử lý click
         mouseService.click(tradeTx, tradeTy, 1);
-        mouseService.click(priceX, priceY, session.getVol());
+        mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
         mouseService.click(okX, okY, 1);
       }
 
@@ -242,7 +245,7 @@ public class TradingService {
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
             mouseService.click(tradeXx, tradeXy, 1);
-            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
             mouseService.click(okX, okY, 1);
           } else {
             botTradingService.sendMessageTrading(
@@ -255,7 +258,7 @@ public class TradingService {
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
             mouseService.click(tradeTx, tradeTy, 1);
-            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
             mouseService.click(okX, okY, 1);
           }
           break;
@@ -271,7 +274,7 @@ public class TradingService {
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
             mouseService.click(tradeXx, tradeXy, 1);
-            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
             mouseService.click(okX, okY, 1);
           } else {
             botTradingService.sendMessageTrading(
@@ -284,7 +287,7 @@ public class TradingService {
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
             mouseService.click(tradeTx, tradeTy, 1);
-            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
             mouseService.click(okX, okY, 1);
           }
           break;
@@ -301,7 +304,7 @@ public class TradingService {
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
             mouseService.click(tradeXx, tradeXy, 1);
-            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
             mouseService.click(okX, okY, 1);
           } else {
             botTradingService.sendMessageTrading(
@@ -314,7 +317,7 @@ public class TradingService {
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
             mouseService.click(tradeTx, tradeTy, 1);
-            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
             mouseService.click(okX, okY, 1);
           }
           break;
@@ -331,7 +334,7 @@ public class TradingService {
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
             mouseService.click(tradeXx, tradeXy, 1);
-            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
             mouseService.click(okX, okY, 1);
           } else {
             botTradingService.sendMessageTrading(
@@ -344,7 +347,7 @@ public class TradingService {
                     .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
             // Xử lý click
             mouseService.click(tradeTx, tradeTy, 1);
-            mouseService.click(priceX, priceY, session.getVol());
+            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
             mouseService.click(okX, okY, 1);
           }
           break;
