@@ -207,7 +207,51 @@ public class TradingService {
                 📈 Kết quả           : %s
                 """
                 .formatted(session.getNum(), totalMoneyNew, result));
-        session = null;
+
+        // Kiểm tra điều kiện mở phiên
+        if (!canOpenSession(current)) {
+          session = null;
+          return;
+        }
+
+        // Tạo session mới
+        session = TradeSession.builder().openTrade(current).totalMoney(15).vol(1).num(1).build();
+        botTradingService.sendMessageTrading(
+            "🚀 ========================= "
+                + "\n"
+                + "🚀 BẮT ĐẦU PHIÊN GIAO DỊCH "
+                + "\n"
+                + "🚀 =========================");
+
+        if (session.getOpenTrade().getEqResult() > 0) {
+          botTradingService.sendMessageTrading(
+              """
+                          📌 Lệnh thứ      : %s
+                          📊 Vol           : %s
+                          💰 CurrentMoney  : %s
+                          ➡️ Action        : X
+                          """
+                  .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
+          // Xử lý click
+          mouseService.click(tradeXx, tradeXy, 1);
+          mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
+          mouseService.click(okX, okY, 1);
+
+        } else {
+          botTradingService.sendMessageTrading(
+              """
+                    📌 Lệnh thứ      : %s
+                    📊 Vol           : %s
+                    💰 CurrentMoney  : %s
+                    ➡️ Action        : T
+                    """
+                  .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
+          // Xử lý click
+          mouseService.click(tradeTx, tradeTy, 1);
+          mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
+          mouseService.click(okX, okY, 1);
+        }
+
         return;
       }
 
@@ -233,96 +277,7 @@ public class TradingService {
       session.setOpenTrade(current);
 
       switch (session.getVol()) {
-        case 1:
-          if (session.getOpenTrade().getEqResult() > 0) {
-            botTradingService.sendMessageTrading(
-                """
-                          📌 Lệnh thứ      : %s
-                          📊 Vol           : %s
-                          💰 CurrentMoney  : %s
-                          ➡️ Action        : X
-                          """
-                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
-            // Xử lý click
-            mouseService.click(tradeXx, tradeXy, 1);
-            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
-            mouseService.click(okX, okY, 1);
-          } else {
-            botTradingService.sendMessageTrading(
-                """
-                    📌 Lệnh thứ      : %s
-                    📊 Vol           : %s
-                    💰 CurrentMoney  : %s
-                    ➡️ Action        : T
-                    """
-                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
-            // Xử lý click
-            mouseService.click(tradeTx, tradeTy, 1);
-            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
-            mouseService.click(okX, okY, 1);
-          }
-          break;
-        case 2:
-          if (session.getOpenTrade().getEqResult() > 0) {
-            botTradingService.sendMessageTrading(
-                """
-                          📌 Lệnh thứ      : %s
-                          📊 Vol           : %s
-                          💰 CurrentMoney  : %s
-                          ➡️ Action        : X
-                          """
-                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
-            // Xử lý click
-            mouseService.click(tradeXx, tradeXy, 1);
-            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
-            mouseService.click(okX, okY, 1);
-          } else {
-            botTradingService.sendMessageTrading(
-                """
-                    📌 Lệnh thứ      : %s
-                    📊 Vol           : %s
-                    💰 CurrentMoney  : %s
-                    ➡️ Action        : T
-                    """
-                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
-            // Xử lý click
-            mouseService.click(tradeTx, tradeTy, 1);
-            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
-            mouseService.click(okX, okY, 1);
-          }
-          break;
-
-        case 3:
-          if (session.getOpenTrade().getEqResult() > 0) {
-            botTradingService.sendMessageTrading(
-                """
-                          📌 Lệnh thứ      : %s
-                          📊 Vol           : %s
-                          💰 CurrentMoney  : %s
-                          ➡️ Action        : X
-                          """
-                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
-            // Xử lý click
-            mouseService.click(tradeXx, tradeXy, 1);
-            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
-            mouseService.click(okX, okY, 1);
-          } else {
-            botTradingService.sendMessageTrading(
-                """
-                    📌 Lệnh thứ      : %s
-                    📊 Vol           : %s
-                    💰 CurrentMoney  : %s
-                    ➡️ Action        : T
-                    """
-                    .formatted(session.getNum(), session.getVol(), session.getTotalMoney()));
-            // Xử lý click
-            mouseService.click(tradeTx, tradeTy, 1);
-            mouseService.click(priceX, priceY, session.getVol() * soLanPrice);
-            mouseService.click(okX, okY, 1);
-          }
-          break;
-
-        case 6:
+        case 1, 2, 3, 6:
           if (session.getOpenTrade().getEqResult() > 0) {
             botTradingService.sendMessageTrading(
                 """
