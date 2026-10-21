@@ -3,10 +3,12 @@ package com.example.demo.service;
 import com.example.demo.data.entity.StatisticalEntity;
 import com.example.demo.data.repository.StatisticalRepository;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy; // ⭐ CHANGED
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException; // ⭐ CHANGED
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
@@ -55,15 +57,20 @@ public class TelegramService {
 
   private final ExecutorService commandExecutor = Executors.newSingleThreadExecutor();
 
-  private final AtomicLong lastPollingSuccess = new AtomicLong(System.currentTimeMillis());
+  private final AtomicLong lastPollingSuccess =
+          new AtomicLong(System.currentTimeMillis());
 
   // Luồng polling hiện hành; dùng để watchdog tự khởi động lại khi treo.
   private volatile Thread pollingThread;
 
+  // ⭐ CHANGED
+  // Không cho phép tạo nhiều polling thread cùng lúc.
+  private volatile boolean pollingRunning = true;
+
   public TelegramService(
-      TradingService tradingService,
-      MouseService mouseService,
-      StatisticalRepository statisticalRepository) {
+          TradingService tradingService,
+          MouseService mouseService,
+          StatisticalRepository statisticalRepository) {
 
     this.tradingService = tradingService;
     this.mouseService = mouseService;
@@ -148,27 +155,16 @@ public class TelegramService {
   @PostConstruct
   public void startTelegramPolling() {
 
-    startPollingThread();
+    // ⭐ CHANGED
+    // Bot dùng getUpdates => phải xóa webhook trước.
+    deleteWebhook();
 
-    Thread watchdogThread = new Thread(this::watchdog);
+    // ⭐ CHANGED
+    // Bỏ qua các command cũ trước khi bắt đầu polling.
+    skipPendingUpdates();
 
-    watchdogThread.setName("telegram-watchdog");
-    watchdogThread.setDaemon(true);
-    watchdogThread.start();
-
-    log.info("Telegram command bot started...");
-  }
-
-  // Tạo (hoặc tạo lại) luồng polling. Luồng cũ nếu còn sống sẽ bị yêu cầu dừng;
-  // vòng longPolling chỉ chạy khi nó vẫn là pollingThread hiện hành nên luồng cũ tự thoát.
-  private synchronized void startPollingThread() {
-
-    Thread old = pollingThread;
-
-    if (old != null && old.isAlive()) {
-      old.interrupt();
-    }
-
+    // ⭐ CHANGED
+    // Chỉ tạo DUY NHẤT một polling thread.
     Thread t = new Thread(this::longPolling);
 
     t.setName("telegram-polling");
@@ -177,51 +173,48 @@ public class TelegramService {
     pollingThread = t;
 
     t.start();
-  }
 
-  private void watchdog() {
-
-    boolean notified = false;
-
-    while (true) {
-
-      try {
-
-        long diff = System.currentTimeMillis() - lastPollingSuccess.get();
-
-        if (diff > 120_000) {
-
-          if (!notified) {
-
-            sendMessageAdmin("⚠️ Telegram polling bất thường, đang khởi động lại...");
-
-            notified = true;
-          }
-
-          // Tự khởi động lại luồng polling khi phát hiện treo.
-          startPollingThread();
-
-        } else {
-
-          if (notified) {
-
-            sendMessageAdmin("✅ Telegram polling đã phục hồi");
-          }
-
-          notified = false;
-        }
-
-        Thread.sleep(60_000);
-
-      } catch (Exception e) {
-
-        log.error("Watchdog error", e);
-      }
-    }
+    log.info("Telegram command bot started...");
   }
 
   // =========================================================
-  // SKIP PENDING UPDATES (tránh replay command cũ khi restart)
+  // DELETE WEBHOOK
+  // =========================================================
+
+  // ⭐ CHANGED
+  // Xóa webhook để có thể sử dụng getUpdates().
+  private void deleteWebhook() {
+
+    try {
+
+      String url =
+              "https://api.telegram.org/bot"
+                      + commandBotToken
+                      + "/deleteWebhook?drop_pending_updates=false";
+
+      String response =
+              restTemplate.getForObject(
+                      url,
+                      String.class
+              );
+
+      log.info(
+              "Telegram webhook deleted: {}",
+              response
+      );
+
+    } catch (Exception e) {
+
+      log.error(
+              "Failed to delete Telegram webhook",
+              e
+      );
+    }
+  }
+
+
+  // =========================================================
+  // SKIP PENDING UPDATES
   // =========================================================
 
   private void skipPendingUpdates() {
@@ -230,15 +223,22 @@ public class TelegramService {
 
       // offset=-1 trả về update mới nhất đang tồn đọng (nếu có).
       String url =
-          "https://api.telegram.org/bot" + commandBotToken + "/getUpdates?timeout=0&offset=-1";
+              "https://api.telegram.org/bot"
+                      + commandBotToken
+                      + "/getUpdates?timeout=0&offset=-1";
 
-      Map response = pollingRestTemplate.getForObject(url, Map.class);
+      Map response =
+              pollingRestTemplate.getForObject(
+                      url,
+                      Map.class
+              );
 
       if (response == null) {
         return;
       }
 
-      List<Map> results = (List<Map>) response.get("result");
+      List<Map> results =
+              (List<Map>) response.get("result");
 
       if (results == null || results.isEmpty()) {
         return;
@@ -246,14 +246,24 @@ public class TelegramService {
 
       // Đặt updateId = update mới nhất => vòng polling sẽ gọi offset=updateId+1,
       // confirm và bỏ qua toàn bộ command tồn đọng.
-      Map last = results.get(results.size() - 1);
-      updateId = ((Number) last.get("update_id")).longValue();
+      Map last =
+              results.get(results.size() - 1);
 
-      log.info("Đã bỏ qua command tồn đọng, bắt đầu từ offset {}", updateId + 1);
+      updateId =
+              ((Number) last.get("update_id"))
+                      .longValue();
+
+      log.info(
+              "Đã bỏ qua command tồn đọng, bắt đầu từ offset {}",
+              updateId + 1
+      );
 
     } catch (Exception e) {
 
-      log.error("Skip pending updates failed", e);
+      log.error(
+              "Skip pending updates failed",
+              e
+      );
     }
   }
 
@@ -263,31 +273,39 @@ public class TelegramService {
 
   private void longPolling() {
 
-    // Bỏ qua toàn bộ command tồn đọng trước khi vào vòng polling
-    // để tránh thực thi lại lệnh cũ sau khi service khởi động lại.
-    skipPendingUpdates();
+    // ⭐ CHANGED
+    // Không gọi skipPendingUpdates() ở đây nữa.
+    // Nó đã được gọi đúng một lần trong startTelegramPolling().
 
-    // Chỉ chạy khi vẫn là luồng polling hiện hành; nếu watchdog đã tạo luồng mới
-    // thì luồng cũ này sẽ tự thoát ở vòng lặp kế tiếp, tránh chạy song song (409).
-    while (pollingThread == Thread.currentThread()) {
+    while (
+            pollingRunning
+                    && pollingThread == Thread.currentThread()
+    ) {
 
       try {
 
         String url =
-            "https://api.telegram.org/bot"
-                + commandBotToken
-                + "/getUpdates?timeout=60&offset="
-                + (updateId + 1);
+                "https://api.telegram.org/bot"
+                        + commandBotToken
+                        + "/getUpdates?timeout=60&offset="
+                        + (updateId + 1);
 
-        Map response = pollingRestTemplate.getForObject(url, Map.class);
+        Map response =
+                pollingRestTemplate.getForObject(
+                        url,
+                        Map.class
+                );
 
-        lastPollingSuccess.set(System.currentTimeMillis());
+        lastPollingSuccess.set(
+                System.currentTimeMillis()
+        );
 
         if (response == null) {
           continue;
         }
 
-        List<Map> results = (List<Map>) response.get("result");
+        List<Map> results =
+                (List<Map>) response.get("result");
 
         if (results == null || results.isEmpty()) {
           continue;
@@ -295,59 +313,114 @@ public class TelegramService {
 
         for (Map result : results) {
 
-          long currentUpdateId = ((Number) result.get("update_id")).longValue();
+          long currentUpdateId =
+                  ((Number) result.get("update_id"))
+                          .longValue();
 
-          Map message = (Map) result.get("message");
+          // ⭐ CHANGED
+          // Update offset NGAY khi nhận update.
+          //
+          // Code cũ chỉ update updateId sau khi message
+          // đúng chat admin. Điều đó có thể làm Telegram
+          // gửi lại các update không hợp lệ.
+          updateId = currentUpdateId;
+
+          Map message =
+                  (Map) result.get("message");
 
           if (message == null) {
             continue;
           }
 
-          String text = (String) message.get("text");
+          String text =
+                  (String) message.get("text");
 
           if (text == null || text.isBlank()) {
             continue;
           }
 
-          Long currentChatId = ((Number) ((Map) message.get("chat")).get("id")).longValue();
+          Long currentChatId =
+                  ((Number)
+                          ((Map) message.get("chat"))
+                                  .get("id"))
+                          .longValue();
 
-          if (!currentChatId.toString().equals(commandChatId)) {
+          if (!currentChatId.toString()
+                  .equals(commandChatId)) {
+
             continue;
           }
 
-          log.info("COMMAND: {}", text);
+          log.info(
+                  "COMMAND: {}",
+                  text
+          );
 
           commandExecutor.submit(
-              () -> {
-                try {
+                  () -> {
 
-                  handleCommand(text.trim().toLowerCase());
+                    try {
 
-                } catch (Exception e) {
+                      handleCommand(
+                              text.trim()
+                                      .toLowerCase()
+                      );
 
-                  log.error("Handle command failed", e);
+                    } catch (Exception e) {
 
-                  sendMessageAdmin("❌ Command failed");
-                }
-              });
+                      log.error(
+                              "Handle command failed",
+                              e
+                      );
 
-          updateId = currentUpdateId;
+                      sendMessageAdmin(
+                              "❌ Command failed"
+                      );
+                    }
+                  });
         }
 
-      } catch (Throwable e) {
+        // ⭐ CHANGED
+        // Bắt riêng 409 để không coi nó như lỗi bình thường.
+      } catch (HttpClientErrorException.Conflict e) {
 
-        log.error("Polling error", e);
+        log.error(
+                "Telegram 409 Conflict: webhook hoặc một polling connection khác đang sử dụng bot.",
+                e
+        );
 
         try {
 
-          Thread.sleep(3000);
+          Thread.sleep(5000);
 
         } catch (InterruptedException ex) {
 
           Thread.currentThread().interrupt();
+          pollingRunning = false;
+        }
+
+      } catch (Exception e) {
+
+        log.error(
+                "Polling error",
+                e
+        );
+
+        try {
+
+          Thread.sleep(5000);
+
+        } catch (InterruptedException ex) {
+
+          Thread.currentThread().interrupt();
+          pollingRunning = false;
         }
       }
     }
+
+    log.info(
+            "Telegram polling thread stopped."
+    );
   }
 
   // =========================================================
@@ -368,6 +441,7 @@ public class TelegramService {
       case "/data":
         getData();
         break;
+
       // ví dụ: /update 14789 0
       case "/update":
         int id = Integer.parseInt(args[1]);
@@ -395,20 +469,6 @@ public class TelegramService {
         getLocation();
         break;
 
-      case "/reset-browser":
-        mouseService.resetBrowser();
-        break;
-
-      case "/wol":
-        callWOL();
-        sendMessageAdmin("✅ callWOL executed");
-        break;
-
-      case "/main":
-        callMain();
-        sendMessageAdmin("✅ callMain executed");
-        break;
-
       default:
         sendMessageAdmin("❌ Unknown command");
     }
@@ -422,9 +482,9 @@ public class TelegramService {
 
     try {
       restTemplate.postForObject(
-          "http://localhost:9191/job/start?x=" + startX + "&y=" + startY + "&size=9",
-          null,
-          String.class);
+              "http://localhost:9191/job/start?x=" + startX + "&y=" + startY + "&size=9",
+              null,
+              String.class);
     } catch (Exception e) {
       sendMessageAdmin("❌ Call API start failed");
     }
@@ -450,9 +510,13 @@ public class TelegramService {
 
   private void callUpdate(Integer id, Integer value) {
     try {
-      StatisticalEntity statisticalEntity = statisticalRepository.findByStatisticalId(id);
+      StatisticalEntity statisticalEntity =
+              statisticalRepository.findByStatisticalId(id);
+
       statisticalEntity.setResult(value);
+
       statisticalRepository.save(statisticalEntity);
+
     } catch (Exception e) {
       sendMessageAdmin("❌ Call API update data failed");
     }
@@ -464,6 +528,7 @@ public class TelegramService {
       Point p = a.getLocation();
 
       String msg = "X: " + p.x + " | Y: " + p.y;
+
       sendMessageAdmin(msg);
 
     } catch (Exception e) {
@@ -472,52 +537,68 @@ public class TelegramService {
   }
 
   private void callInsert(List<Integer> values) {
-    int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+    int today =
+            Integer.parseInt(
+                    LocalDate.now()
+                            .format(
+                                    DateTimeFormatter.ofPattern("yyyyMMdd")
+                            )
+            );
 
     try {
       List<StatisticalEntity> entities =
-          values.stream()
-              .map(
-                  value -> {
-                    StatisticalEntity entity = new StatisticalEntity();
-                    entity.setResult(value);
-                    entity.setDate(today);
-                    return entity;
-                  })
-              .toList();
+              values.stream()
+                      .map(
+                              value -> {
+                                StatisticalEntity entity =
+                                        new StatisticalEntity();
+
+                                entity.setResult(value);
+                                entity.setDate(today);
+
+                                return entity;
+                              })
+                      .toList();
 
       statisticalRepository.saveAll(entities);
-      sendMessageAdmin("✅ Call API INSERT data");
+
+      sendMessageAdmin(
+              "✅ Call API INSERT data"
+      );
+
     } catch (Exception e) {
-      sendMessageAdmin("❌ Call API INSERT data failed");
+
+      sendMessageAdmin(
+              "❌ Call API INSERT data failed"
+      );
     }
   }
 
-  private void callWOL() {
+  // =========================================================
+  // SHUTDOWN
+  // =========================================================
 
-    try {
+  // ⭐ CHANGED
+  // Khi Spring Boot shutdown thì dừng polling thread.
+  @PreDestroy
+  public void shutdown() {
 
-      int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+    log.info(
+            "Stopping Telegram service..."
+    );
 
-      restTemplate.postForObject(
-          "http://localhost:9191/calculator/win-or-lose?ytd=" + today, null, String.class);
+    pollingRunning = false;
 
-    } catch (Exception e) {
-      sendMessageAdmin("❌ Call API WOL failed");
+    Thread thread = pollingThread;
+
+    if (thread != null) {
+      thread.interrupt();
     }
-  }
 
-  private void callMain() {
+    commandExecutor.shutdownNow();
 
-    try {
-
-      int today = Integer.parseInt(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
-
-      restTemplate.postForObject(
-          "http://localhost:9191/calculator/main?ytd=" + today, null, String.class);
-
-    } catch (Exception e) {
-      sendMessageAdmin("❌ Call API Main failed");
-    }
+    log.info(
+            "Telegram service stopped."
+    );
   }
 }
